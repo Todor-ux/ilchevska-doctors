@@ -371,8 +371,10 @@ footer strong{color:#a8c8e8}
         <div class="cal-grid" id="calGrid"></div>
         <div class="slots-title">Свободни часове:</div>
         <div class="time-slots" id="timeSlots"></div>
-        <button class="btn-book" onclick="confirmBooking()">📅 Резервирай час</button>
-        <div class="book-note">Безплатна отмяна до 2 часа преди консултацията</div>
+        <div id="bookingFormContainer">
+          <button class="btn-book" onclick="confirmBooking()">📅 Резервирай час</button>
+          <div class="book-note">Безплатна отмяна до 2 часа преди консултацията</div>
+        </div>
       </div>
     </div>
   </div>
@@ -395,393 +397,31 @@ footer strong{color:#a8c8e8}
   <p style="margin-top:.6rem;font-size:.75rem">Онлайн консултациите не заменят личен преглед от лекар.</p>
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
 <script>
 // ══════════════════════════════════════════
-//  DATA
+//  SUPABASE + STATE
 // ══════════════════════════════════════════
-const DAYS = ['Нед','Пон','Вт','Ср','Чет','Пет','Съб'];
+const db = initSupabase();
+
+const DAYS   = ['Нед','Пон','Вт','Ср','Чет','Пет','Съб'];
 const MONTHS = ['Януари','Февруари','Март','Април','Май','Юни','Юли','Август','Септември','Октомври','Ноември','Декември'];
 
-const DOCTORS = [
-  {
-    id:1, name:'д-р Мария Стоянова', spec:'Кардиолог',
-    initials:'МС', color:'#1a4a72', availToday:true,
-    rating:4.9, reviews:142, price:60, duration:45,
-    nextSlot:'Днес, 14:00',
-    about:'Специалист по сърдечно-съдови заболявания с 18 години опит. Работила в Национална кардиологична болница – София. Специализирала в клиника в Хамбург, Германия.',
-    education:[
-      {year:'2002–2008', title:'МУ – София', sub:'Медицина, специалност Кардиология'},
-      {year:'2009–2011', title:'Специализация – Хамбург', sub:'Инвазивна кардиология'},
-      {year:'2015', title:'Сертификат ESC', sub:'Европейско общество по кардиология'},
-    ],
-    tags:['Сърдечна недостатъчност','Аритмии','ЕКГ интерпретация','Хипертония','Коронарна болест','Холтер','Ехокардиография'],
-    langs:['Български 🇧🇬','Английски 🇬🇧','Немски 🇩🇪'],
-    experience:18,
-    reviews_list:[
-      {name:'Иван П.', stars:5, date:'15 март 2026', text:'Изключително компетентна лекарка. Обясни всичко детайлно и предложи ясен план за лечение. Препоръчвам!'},
-      {name:'Елена М.', stars:5, date:'2 март 2026', text:'Много внимателна и търпелива. Отговори на всички ми въпроси. Страхотна консултация.'},
-      {name:'Георги Т.', stars:4, date:'18 февруари 2026', text:'Много добра консултация, обяснена по разбираем начин. Ще се свържа отново.'},
-    ]
-  },
-  {
-    id:2, name:'д-р Петър Иванов', spec:'Дерматолог',
-    initials:'ПИ', color:'#2d4a1e', availToday:true,
-    rating:4.7, reviews:98, price:50, duration:30,
-    nextSlot:'Днес, 15:30',
-    about:'Дерматолог с 12 години клиничен опит. Специалист по обриви, акне, псориазис и козметична дерматология. Член на Българско дерматологично дружество.',
-    education:[
-      {year:'2006–2012', title:'МУ – Пловдив', sub:'Медицина'},
-      {year:'2013–2015', title:'Специализация по Дерматология', sub:'УМБАЛ "Александровска" – София'},
-      {year:'2019', title:'Конгрес по Дерматология', sub:'Виена – козметични процедури'},
-    ],
-    tags:['Акне','Екзема','Псориазис','Обриви','Урикария','Дерматит','Гъбични инфекции','Козметична дерматология'],
-    langs:['Български 🇧🇬','Английски 🇬🇧'],
-    experience:12,
-    reviews_list:[
-      {name:'Симона В.', stars:5, date:'20 март 2026', text:'Помогна ми с акне, което имах от години. Много практични съвети за грижа за кожата!'},
-      {name:'Никола Д.', stars:4, date:'5 март 2026', text:'Добра консултация. Предписа лечение, което проработи за седмица.'},
-    ]
-  },
-  {
-    id:3, name:'д-р Анна Георгиева', spec:'Педиатър',
-    initials:'АГ', color:'#4a1a5e', availToday:false,
-    rating:4.8, reviews:215, price:45, duration:40,
-    nextSlot:'Утре, 10:00',
-    about:'Педиатър с 20 години опит в работата с деца от новородени до юноши. Специалист по детски инфекциозни болести и детско развитие.',
-    education:[
-      {year:'2000–2006', title:'МУ – Варна', sub:'Педиатрия'},
-      {year:'2007–2009', title:'Детска болница – Виена', sub:'Специализация по Неонатология'},
-      {year:'2018', title:'Сертификат ESPGHAN', sub:'Детска гастроентерология'},
-    ],
-    tags:['Новородени','Детски инфекции','Ваксинации','Детско развитие','Хранене на деца','Алергии при деца'],
-    langs:['Български 🇧🇬','Английски 🇬🇧','Руски 🇷🇺'],
-    experience:20,
-    reviews_list:[
-      {name:'Калина М.', stars:5, date:'22 март 2026', text:'Страхотна лекарка! Детето ни се успокои веднага. Много търпелива и внимателна.'},
-      {name:'Стефан Б.', stars:5, date:'10 март 2026', text:'Перфектна консултация. Обясни всичко за бебето ни по много разбираем начин.'},
-      {name:'Десислава К.', stars:4, date:'1 март 2026', text:'Много добра педиатърка. Ще я препоръчам на всички родители.'},
-    ]
-  },
-  {
-    id:4, name:'д-р Христо Маринов', spec:'Невролог',
-    initials:'ХМ', color:'#1a3a4e', availToday:true,
-    rating:4.6, reviews:87, price:65, duration:50,
-    nextSlot:'Днес, 16:00',
-    about:'Невролог специализирал в лечение на главоболие, мигрена, множествена склероза и невропатии. 15 години клиничен опит.',
-    education:[
-      {year:'2003–2009', title:'МУ – Плевен', sub:'Медицина'},
-      {year:'2010–2012', title:'Специализация – Неврология', sub:'УМБАЛ "Св. Иван Рилски"'},
-      {year:'2016', title:'Майнц, Германия', sub:'Специализация по мигрена и главоболие'},
-    ],
-    tags:['Мигрена','Главоболие','Множествена склероза','Невропатия','Епилепсия','Замаяност','Тремор'],
-    langs:['Български 🇧🇬','Немски 🇩🇪'],
-    experience:15,
-    reviews_list:[
-      {name:'Росица Н.', stars:5, date:'18 март 2026', text:'Накрая намерих лекар, който разбира мигрените ми. Лечението работи отлично!'},
-      {name:'Тодор Г.', stars:4, date:'8 март 2026', text:'Много добър невролог. Задълбочен преглед и ясни препоръки.'},
-    ]
-  },
-  {
-    id:5, name:'д-р Стоян Димитров', spec:'Ортопед',
-    initials:'СД', color:'#3a2a0e', availToday:false,
-    rating:4.5, reviews:63, price:55, duration:40,
-    nextSlot:'Утре, 09:30',
-    about:'Ортопед и травматолог. Специалист по наранявания на ставите, гръбначни проблеми и спортна медицина. Работил в клиника за спортна медицина в Барселона.',
-    education:[
-      {year:'2004–2010', title:'МУ – София', sub:'Ортопедия и травматология'},
-      {year:'2012', title:'Барселона, Испания', sub:'Спортна медицина и артроскопия'},
-      {year:'2018', title:'Сертификат AO Trauma', sub:'Остеосинтеза и лечение на фрактури'},
-    ],
-    tags:['Гръбначни болки','Колянна става','Рамо','Спортни травми','Артроза','Остеопороза','Рехабилитация'],
-    langs:['Български 🇧🇬','Испански 🇪🇸','Английски 🇬🇧'],
-    experience:14,
-    reviews_list:[
-      {name:'Васил Т.', stars:5, date:'14 март 2026', text:'Страхотен лекар! Помогна ми с болки в коляното от 3 години. Ясен и прецизен.'},
-      {name:'Лили В.', stars:4, date:'3 март 2026', text:'Добра консултация по гръбначните болки. Препоръча упражнения, които помогнаха.'},
-    ]
-  },
-  {
-    id:6, name:'д-р Елена Николова', spec:'Гинеколог',
-    initials:'ЕН', color:'#4a1a3a', availToday:true,
-    rating:4.9, reviews:178, price:55, duration:45,
-    nextSlot:'Днес, 11:00',
-    about:'Гинеколог акушер с 16 години опит. Специалист по гинекологични прегледи, бременност, ендометриоза и менопауза. Работила в болница в Лондон.',
-    education:[
-      {year:'2002–2008', title:'МУ – София', sub:'Акушерство и гинекология'},
-      {year:'2010–2012', title:'King\'s College Hospital, Лондон', sub:'Специализация по Фето-майчина медицина'},
-      {year:'2019', title:'Сертификат ESHRE', sub:'Репродуктивна медицина'},
-    ],
-    tags:['Бременност','Ендометриоза','Менопауза','СПКЯ','Контрацепция','Кисти','Гинекологични прегледи'],
-    langs:['Български 🇧🇬','Английски 🇬🇧'],
-    experience:16,
-    reviews_list:[
-      {name:'Диана Р.', stars:5, date:'21 март 2026', text:'Много внимателна и разбираща лекарка. Обясни всичко за бременността ми с търпение.'},
-      {name:'Анита С.', stars:5, date:'12 март 2026', text:'Перфектна консултация! Препоръчвам на всяка жена.'},
-    ]
-  },
-  {
-    id:7, name:'д-р Борис Атанасов', spec:'Офталмолог',
-    initials:'БА', color:'#0e3a4a', availToday:false,
-    rating:4.7, reviews:104, price:50, duration:35,
-    nextSlot:'Вторник, 10:30',
-    about:'Офталмолог с 13 години опит. Специалист по зрителни нарушения, глаукома, катаракта и лазерна корекция. Работи с модерна диагностична апаратура.',
-    education:[
-      {year:'2005–2011', title:'МУ – Варна', sub:'Офталмология'},
-      {year:'2013', title:'Виена, Австрия', sub:'Специализация – Глаукома и катаракта'},
-      {year:'2017', title:'Конгрес по Офталмология', sub:'Лазерни корективни методи'},
-    ],
-    tags:['Глаукома','Катаракта','Миопия','Астигматизъм','Сухо oko','Ретинопатия','Лазерна корекция'],
-    langs:['Български 🇧🇬','Немски 🇩🇪','Английски 🇬🇧'],
-    experience:13,
-    reviews_list:[
-      {name:'Кирил М.', stars:5, date:'17 март 2026', text:'Отличен офталмолог. Намери проблем, който другите пропуснаха. Благодаря!'},
-      {name:'Магдалена В.', stars:4, date:'6 март 2026', text:'Добра и задълбочена консултация. Много полезни препоръки.'},
-    ]
-  },
-  {
-    id:8, name:'д-р Виктория Пенева', spec:'Психолог',
-    initials:'ВП', color:'#2a1a4e', availToday:true,
-    rating:4.8, reviews:193, price:70, duration:60,
-    nextSlot:'Днес, 17:00',
-    about:'Клиничен психолог и психотерапевт с 14 години опит. Специализирана в когнитивно-поведенческа терапия, тревожност, депресия и семейна терапия.',
-    education:[
-      {year:'2004–2009', title:'СУ "Климент Охридски"', sub:'Клинична психология'},
-      {year:'2010–2012', title:'Виена, Австрия', sub:'Когнитивно-поведенческа терапия (CBT)'},
-      {year:'2020', title:'Онлайн психотерапия', sub:'Международен сертификат IACP'},
-    ],
-    tags:['Тревожност','Депресия','Панически атаки','Стрес','Семейна терапия','CBT','Фобии','Самооценка'],
-    langs:['Български 🇧🇬','Английски 🇬🇧'],
-    experience:14,
-    reviews_list:[
-      {name:'Анонимен', stars:5, date:'23 март 2026', text:'Промени живота ми. Невероятно търпелива и разбираща. Продължаваме терапията.'},
-      {name:'Анонимен', stars:5, date:'15 март 2026', text:'Накрая намерих специалист, пред когото мога да говоря открито. Препоръчвам!'},
-      {name:'К.Д.', stars:5, date:'5 март 2026', text:'Помогна ми с тревожността значително. Практични техники, реални резултати.'},
-    ]
-  },
-  {
-    id:9, name:'маг. фарм. Атанаска Илчевска', spec:'Фармацевт',
-    initials:'АИ', color:'#0d2d4e', availToday:true,
-    rating:5.0, reviews:87, price:20, duration:30,
-    nextSlot:'Днес, 09:00',
-    about:'Магистър-фармацевт с 22 години опит. Управител на Аптека Илчевска в Смолян. Консултира по лекарствени взаимодействия, самолечение и правилна употреба на медикаменти.',
-    education:[
-      {year:'1999–2004', title:'МУ – София', sub:'Фармация (магистър)'},
-      {year:'2010', title:'Специализация', sub:'Клинична фармация и лекарствени взаимодействия'},
-      {year:'2018', title:'Сертификат', sub:'Фармакогеномика и персонализирана медицина'},
-    ],
-    tags:['Лекарствени взаимодействия','Самолечение','Хранителни добавки','Антибиотици','Рецептурни лекарства','Хомеопатия'],
-    langs:['Български 🇧🇬','Гръцки 🇬🇷'],
-    experience:22,
-    reviews_list:[
-      {name:'Михаил Д.', stars:5, date:'25 март 2026', text:'Спаси ме от опасна комбинация лекарства! Невероятно знание и внимание.'},
-      {name:'Цвета П.', stars:5, date:'20 март 2026', text:'Много полезна консултация. Обясни подробно всичко за лекарствата ми.'},
-      {name:'Антон С.', stars:5, date:'10 март 2026', text:'Отзивчива и компетентна. Единственият ми избор при въпроси за лекарства.'},
-    ]
-  },
-  {
-    id:10, name:'маг. фарм. Красимира Попова', spec:'Диетолог',
-    initials:'КП', color:'#1a4a1a', availToday:true,
-    rating:4.7, reviews:134, price:40, duration:45,
-    nextSlot:'Днес, 13:30',
-    about:'Клиничен диетолог и нутриционист с 11 години опит. Изготвя индивидуални хранителни режими при диабет, наднормено тегло, сърдечно-съдови болести и хранителни алергии.',
-    education:[
-      {year:'2007–2012', title:'МУ – Пловдив', sub:'Клинична нутриция и диетология'},
-      {year:'2014', title:'Лондон, Великобритания', sub:'Специализация по спортна нутриция'},
-      {year:'2020', title:'Сертификат', sub:'Нутригеномика и персонализирано хранене'},
-    ],
-    tags:['Отслабване','Диабет тип 2','Хиперхолестеролемия','Спортна нутриция','Хранителни алергии','Вегетарианство','Детско хранене'],
-    langs:['Български 🇧🇬','Английски 🇬🇧'],
-    experience:11,
-    reviews_list:[
-      {name:'Нели Г.', stars:5, date:'19 март 2026', text:'Свалих 12 кг за 3 месеца с нейния режим! Практичен и лесен за следване план.'},
-      {name:'Димитър В.', stars:4, date:'9 март 2026', text:'Много добра консултация за диабетния ми режим. Реални и постижими цели.'},
-    ]
-  },
-  {
-    id:11, name:'д-р Александър Костов', spec:'Уролог',
-    initials:'АК', color:'#1e3a5f', availToday:false,
-    rating:4.6, reviews:72, price:60, duration:40,
-    nextSlot:'Сряда, 11:00',
-    about:'Уролог с 10 години клиничен опит. Специалист по заболявания на пикочните пътища, простатата и мъжкото здраве.',
-    education:[
-      {year:'2007–2013', title:'МУ – Варна', sub:'Урология'},
-      {year:'2015', title:'Специализация – Минимално инвазивна урология', sub:'Мюнхен, Германия'},
-    ],
-    tags:['Простата','Пикочни инфекции','Бъбречни камъни','Мъжко здраве','Инконтиненция','Цистит'],
-    langs:['Български 🇧🇬','Английски 🇬🇧'],
-    experience:10,
-    reviews_list:[
-      {name:'Станислав Н.', stars:5, date:'16 март 2026', text:'Много деликатен и компетентен. Решихме проблема с простатата ми бързо.'},
-    ]
-  },
-  {
-    id:12, name:'д-р Светлана Тодорова', spec:'Ендокринолог',
-    initials:'СТ', color:'#3a1a2e', availToday:true,
-    rating:4.8, reviews:116, price:65, duration:50,
-    nextSlot:'Днес, 10:00',
-    about:'Ендокринолог специализирала в лечение на диабет, щитовидна жлеза, надбъбречни заболявания и хормонални нарушения. 13 години опит.',
-    education:[
-      {year:'2005–2011', title:'МУ – София', sub:'Ендокринология'},
-      {year:'2013', title:'Цюрих, Швейцария', sub:'Специализация – Диабетология'},
-      {year:'2019', title:'Сертификат', sub:'Щитовидна жлеза и тиреоидология'},
-    ],
-    tags:['Диабет тип 1 и 2','Щитовидна жлеза','Хипотиреоидизъм','Хипертиреоидизъм','Надбъбречни жлези','Хормони','Метаболитен синдром'],
-    langs:['Български 🇧🇬','Немски 🇩🇪','Английски 🇬🇧'],
-    experience:13,
-    reviews_list:[
-      {name:'Пенка Л.', stars:5, date:'24 март 2026', text:'Накрая нормализирах щитовидната! Много задълбочена и грижовна специалистка.'},
-      {name:'Бойко М.', stars:5, date:'13 март 2026', text:'Диабетът ми е под контрол за пръв път от години. Невероятна!'},
-    ]
-  },
-  {
-    id:13, name:'д-р Радослав Петков', spec:'Пулмолог',
-    initials:'РП', color:'#0e2a3a', availToday:false,
-    rating:4.5, reviews:59, price:55, duration:40,
-    nextSlot:'Четвъртък, 14:00',
-    about:'Пулмолог специалист по белодробни заболявания, астма, ХОББ и дихателни нарушения. 9 години клиничен опит.',
-    education:[
-      {year:'2008–2014', title:'МУ – Плевен', sub:'Пулмология'},
-      {year:'2016', title:'Брюксел, Белгия', sub:'Специализация – ХОББ и астма'},
-    ],
-    tags:['Астма','ХОББ','Пневмония','Белодробна фиброза','Сънна апнея','Дихателни инфекции'],
-    langs:['Български 🇧🇬','Английски 🇬🇧','Френски 🇫🇷'],
-    experience:9,
-    reviews_list:[
-      {name:'Величка О.', stars:4, date:'11 март 2026', text:'Помогна с астмата ми. Ясен план за действие при криза.'},
-    ]
-  },
-  {
-    id:14, name:'д-р Ивелина Христова', spec:'Гастроентеролог',
-    initials:'ИХ', color:'#2a3a0e', availToday:true,
-    rating:4.7, reviews:91, price:60, duration:45,
-    nextSlot:'Днес, 12:00',
-    about:'Гастроентеролог специализирала по заболявания на стомашно-чревния тракт, черен дроб и панкреас. 12 години опит.',
-    education:[
-      {year:'2006–2012', title:'МУ – Пловдив', sub:'Гастроентерология'},
-      {year:'2014', title:'Флоренция, Италия', sub:'Ендоскопска гастроентерология'},
-      {year:'2020', title:'Сертификат', sub:'Чернодробни болести и хепатология'},
-    ],
-    tags:['Гастрит','Язва','Синдром на раздразненото черво','Болест на Крон','Хепатит','Рефлукс','Ендоскопия'],
-    langs:['Български 🇧🇬','Италиански 🇮🇹','Английски 🇬🇧'],
-    experience:12,
-    reviews_list:[
-      {name:'Огнян П.', stars:5, date:'20 март 2026', text:'Реши проблема ми с рефлукса за 2 седмици. Отлична специалистка!'},
-      {name:'Силвия Б.', stars:4, date:'7 март 2026', text:'Много задълбочена консултация. Ясно обяснение на диетата ми.'},
-    ]
-  },
-  {
-    id:15, name:'д-р Тодор Минков', spec:'Хирург',
-    initials:'ТМ', color:'#3a0e0e', availToday:false,
-    rating:4.8, reviews:147, price:80, duration:60,
-    nextSlot:'Петък, 10:00',
-    about:'Хирург специализирал в коремна хирургия, лапароскопски операции и ендоскопски процедури. 17 години опит в България и Германия.',
-    education:[
-      {year:'2001–2007', title:'МУ – София', sub:'Хирургия'},
-      {year:'2009–2011', title:'Берлин, Германия', sub:'Лапароскопска хирургия'},
-      {year:'2015', title:'Сертификат', sub:'Роботизирана хирургия – da Vinci'},
-    ],
-    tags:['Коремна хирургия','Жлъчка','Апендикс','Хернии','Лапароскопия','Предоперативна консултация'],
-    langs:['Български 🇧🇬','Немски 🇩🇪'],
-    experience:17,
-    reviews_list:[
-      {name:'Красимир А.', stars:5, date:'22 март 2026', text:'Операцията мина идеално. Предварителната консултация онлайн беше много полезна.'},
-    ]
-  },
-  {
-    id:16, name:'д-р Надежда Стаматова', spec:'Ревматолог',
-    initials:'НС', color:'#1a2a4e', availToday:true,
-    rating:4.6, reviews:68, price:60, duration:45,
-    nextSlot:'Днес, 15:00',
-    about:'Ревматолог специализирала в лечение на ставни заболявания, автоимунни болести и остеопороза. 11 години опит.',
-    education:[
-      {year:'2007–2013', title:'МУ – Варна', sub:'Ревматология'},
-      {year:'2015', title:'Амстердам, Нидерландия', sub:'Биологична терапия в ревматологията'},
-    ],
-    tags:['Ревматоиден артрит','Лупус','Подагра','Остеопороза','Фибромиалгия','Анкилозиращ спондилит'],
-    langs:['Български 🇧🇬','Нидерландски 🇳🇱','Английски 🇬🇧'],
-    experience:11,
-    reviews_list:[
-      {name:'Вера Н.', stars:5, date:'19 март 2026', text:'Лечението на ревматоидния ми артрит се подобри значително. Благодаря!'},
-    ]
-  },
-  {
-    id:17, name:'д-р Страхил Богданов', spec:'Нефролог',
-    initials:'СБ', color:'#0e1a4e', availToday:false,
-    rating:4.5, reviews:43, price:65, duration:50,
-    nextSlot:'Понеделник, 11:30',
-    about:'Нефролог специалист по бъбречни заболявания, хронична бъбречна недостатъчност и хипертония. 10 години опит.',
-    education:[
-      {year:'2008–2014', title:'МУ – София', sub:'Нефрология'},
-      {year:'2016', title:'Стокхолм, Швеция', sub:'Диализа и бъбречна трансплантация'},
-    ],
-    tags:['Бъбречна недостатъчност','Диализа','Хронична бъбречна болест','Бъбречни камъни','Гломерулонефрит','Протеинурия'],
-    langs:['Български 🇧🇬','Шведски 🇸🇪','Английски 🇬🇧'],
-    experience:10,
-    reviews_list:[
-      {name:'Людмила П.', stars:4, date:'4 март 2026', text:'Много задълбочен специалист. Помогна с хроничното бъбречно заболяване.'},
-    ]
-  },
-  {
-    id:18, name:'д-р Велислава Колева', spec:'Онколог',
-    initials:'ВК', color:'#2e0e3a', availToday:true,
-    rating:4.9, reviews:203, price:90, duration:60,
-    nextSlot:'Днес, 09:30',
-    about:'Клиничен онколог с 15 години опит. Специалистка по химиотерапия, имунотерапия и биологична терапия при различни видове рак.',
-    education:[
-      {year:'2003–2009', title:'МУ – София', sub:'Онкология'},
-      {year:'2011–2013', title:'Мемориален онкологичен център, Ню Йорк', sub:'Клинична онкология'},
-      {year:'2020', title:'ESMO Конгрес', sub:'Имунотерапия при рак на белия дроб'},
-    ],
-    tags:['Рак на гърдата','Рак на белия дроб','Рак на дебелото черво','Химиотерапия','Имунотерапия','Биологична терапия','Палиативни грижи'],
-    langs:['Български 🇧🇬','Английски 🇬🇧'],
-    experience:15,
-    reviews_list:[
-      {name:'Анонимен', stars:5, date:'26 март 2026', text:'В трудния момент намерих разбиране и компетентност. Благодаря от сърце.'},
-      {name:'Анонимен', stars:5, date:'14 март 2026', text:'Обясни всичко ясно и ни даде надежда. Невероятна лекарка.'},
-    ]
-  },
-  {
-    id:19, name:'д-р Габриела Маринова', spec:'Алерголог',
-    initials:'ГМ', color:'#0e3a2a', availToday:false,
-    rating:4.7, reviews:88, price:55, duration:40,
-    nextSlot:'Вторник, 13:00',
-    about:'Алерголог и имунолог специализирана в хранителни алергии, поленова алергия, астма и имунологични заболявания. 12 години опит.',
-    education:[
-      {year:'2006–2012', title:'МУ – Пловдив', sub:'Алергология и клинична имунология'},
-      {year:'2014', title:'Женева, Швейцария', sub:'Специализация по хранителни алергии'},
-    ],
-    tags:['Поленова алергия','Хранителни алергии','Атопичен дерматит','Уртикария','Алергична астма','Имунотерапия'],
-    langs:['Български 🇧🇬','Френски 🇫🇷','Английски 🇬🇧'],
-    experience:12,
-    reviews_list:[
-      {name:'Захари Б.', stars:5, date:'18 март 2026', text:'Накрая разбрах от какво се алергизирам! Терапията работи отлично.'},
-      {name:'Соня Д.', stars:4, date:'8 март 2026', text:'Много добра консултация. Практични съвети за сезонната алергия.'},
-    ]
-  },
-  {
-    id:20, name:'д-р Камен Зарев', spec:'Имунолог',
-    initials:'КЗ', color:'#2a0e1e', availToday:true,
-    rating:4.6, reviews:56, price:70, duration:55,
-    nextSlot:'Днес, 11:30',
-    about:'Клиничен имунолог специализирал в имунни дефицити, автоимунни заболявания и имунотерапия. 13 години опит.',
-    education:[
-      {year:'2005–2011', title:'МУ – Варна', sub:'Клинична имунология'},
-      {year:'2013', title:'Базел, Швейцария', sub:'Имунни дефицити и биологична терапия'},
-      {year:'2021', title:'Сертификат EAACIот', sub:'Клинична алергология и имунология'},
-    ],
-    tags:['Имунни дефицити','Автоимунни болести','Рекуриращи инфекции','Имунотерапия','Ваксини при имунен дефицит'],
-    langs:['Български 🇧🇬','Немски 🇩🇪','Английски 🇬🇧'],
-    experience:13,
-    reviews_list:[
-      {name:'Десислава Т.', stars:5, date:'21 март 2026', text:'Единственият лекар, който разбра проблема ми с имунитета. Благодаря!'},
-      {name:'Людмил В.', stars:4, date:'9 март 2026', text:'Много компетентен специалист. Задълбочен подход.'},
-    ]
-  },
-];
+let allDoctors = [];
+let calYear, calMonth;
+let selectedDate = null, selectedTime = null, selectedSlotId = null;
+let currentDoctor = null;
+let doctorSlots = [];
 
 // ══════════════════════════════════════════
 //  HELPERS
 // ══════════════════════════════════════════
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function dateStr(d) { return d.toISOString().split('T')[0]; }
+
 function stars(n) {
   const full = Math.floor(n), half = n % 1 >= 0.5;
   let s = '★'.repeat(full);
@@ -791,7 +431,27 @@ function stars(n) {
 }
 
 function avatarHTML(doc, size=76) {
-  return `<div class="avatar" style="width:${size}px;height:${size}px;line-height:${size}px;background:${doc.color};font-size:${size*.32}px">${doc.initials}</div>`;
+  const col = doc.avatar_color || doc.color || '#1d4e89';
+  const ini = doc.initials || '';
+  if(doc.photo_url) {
+    return `<div class="avatar" style="width:${size}px;height:${size}px;line-height:${size}px;background:${escHtml(col)};font-size:${size*.32}px;overflow:hidden"><img src="${escHtml(doc.photo_url)}" onerror="this.style.display='none'" style="width:100%;height:100%;object-fit:cover">${ini}</div>`;
+  }
+  return `<div class="avatar" style="width:${size}px;height:${size}px;line-height:${size}px;background:${escHtml(col)};font-size:${size*.32}px">${escHtml(ini)}</div>`;
+}
+
+// ══════════════════════════════════════════
+//  LOAD DOCTORS
+// ══════════════════════════════════════════
+async function loadDoctors() {
+  document.getElementById('doctorsGrid').innerHTML = '<div class="no-results"><p>Зареждане...</p></div>';
+  const { data, error } = await db.from('doctors').select('*').eq('is_available', true).order('name');
+  if(error || !data) {
+    document.getElementById('doctorsGrid').innerHTML =
+      `<div class="no-results"><h3>Грешка при зареждане</h3><p>${escHtml(error?.message||'Неизвестна грешка')}</p></div>`;
+    return;
+  }
+  allDoctors = data;
+  applyFilters();
 }
 
 // ══════════════════════════════════════════
@@ -805,19 +465,17 @@ function renderGrid(list) {
     return;
   }
   grid.innerHTML = list.map(d => `
-    <div class="doc-card" onclick="showProfile(${d.id})">
+    <div class="doc-card" onclick="showProfile('${escHtml(d.id)}')">
       <div class="card-top">
-        <div class="avail-dot ${d.availToday?'online':'offline'}" title="${d.availToday?'Наличен днес':'Не е наличен днес'}"></div>
+        <div class="avail-dot ${d.is_available?'online':'offline'}" title="${d.is_available?'Наличен':'Не е наличен'}"></div>
         ${avatarHTML(d)}
-        <div class="card-name">${d.name}</div>
-        <span class="card-spec">${d.spec}</span>
+        <div class="card-name">${escHtml(d.name)}</div>
+        <span class="card-spec">${escHtml(d.specialty||'')}</span>
       </div>
       <div class="card-body">
-        <div>
-          <div class="stars">${stars(d.rating)}<span>${d.rating} (${d.reviews} отзива)</span></div>
-        </div>
+        <div class="stars">${stars(d.rating||0)}<span>${(+(d.rating||0)).toFixed(1)} (${d.review_count||0} отзива)</span></div>
         <div class="card-price">${d.price} лв. <small>/ консултация</small></div>
-        <div class="next-slot">🕐 <span>Следващ час:</span> ${d.nextSlot}</div>
+        <div class="next-slot">🕐 <span>Опит:</span> ${d.experience_years||0} г.</div>
       </div>
       <div class="card-footer">
         <button class="btn-view">Виж профил</button>
@@ -838,20 +496,23 @@ function applyFilters() {
   const minR  = parseFloat(document.getElementById('fRating').value)||0;
   const sort  = document.getElementById('fSort').value;
 
-  let list = DOCTORS.filter(d => {
-    if(q && !d.name.toLowerCase().includes(q) && !d.spec.toLowerCase().includes(q) &&
-       !d.tags.some(t=>t.toLowerCase().includes(q))) return false;
-    if(spec && d.spec !== spec) return false;
+  const getTags = d => Array.isArray(d.tags) ? d.tags
+    : (typeof d.tags==='string' && d.tags ? d.tags.split(',').map(t=>t.trim()) : []);
+
+  let list = allDoctors.filter(d => {
+    if(q && !d.name.toLowerCase().includes(q) && !(d.specialty||'').toLowerCase().includes(q) &&
+       !getTags(d).some(t=>t.toLowerCase().includes(q))) return false;
+    if(spec && d.specialty !== spec) return false;
     if(d.price < pMin || d.price > pMax) return false;
-    if(avail==='today' && !d.availToday) return false;
-    if(d.rating < minR) return false;
+    if(avail==='today' && !d.is_available) return false;
+    if((d.rating||0) < minR) return false;
     return true;
   });
 
-  if(sort==='rating')     list.sort((a,b)=>b.rating-a.rating);
+  if(sort==='rating')          list.sort((a,b)=>(b.rating||0)-(a.rating||0));
   else if(sort==='price_asc')  list.sort((a,b)=>a.price-b.price);
   else if(sort==='price_desc') list.sort((a,b)=>b.price-a.price);
-  else if(sort==='avail') list.sort((a,b)=>b.availToday-a.availToday);
+  else if(sort==='avail')      list.sort((a,b)=>b.is_available-a.is_available);
 
   renderGrid(list);
 }
@@ -870,133 +531,237 @@ function resetFilters() {
 // ══════════════════════════════════════════
 //  CALENDAR
 // ══════════════════════════════════════════
-let calYear, calMonth, selectedDate=null, selectedTime=null, currentDoctor=null;
-const TIME_SLOTS=['09:00','09:30','10:00','10:30','11:00','11:30','12:00','13:00','13:30','14:00','15:00','16:00','17:00'];
-
 function initCal() {
-  const now=new Date();
-  calYear=now.getFullYear(); calMonth=now.getMonth();
+  const now = new Date();
+  calYear = now.getFullYear(); calMonth = now.getMonth();
   renderCal();
 }
 
-function changeMonth(d) {
-  calMonth+=d;
-  if(calMonth>11){calMonth=0;calYear++;}
-  if(calMonth<0){calMonth=11;calYear--;}
-  selectedDate=null; selectedTime=null;
+function changeMonth(dir) {
+  calMonth += dir;
+  if(calMonth > 11){ calMonth = 0; calYear++; }
+  if(calMonth < 0) { calMonth = 11; calYear--; }
+  selectedDate = null; selectedTime = null; selectedSlotId = null;
   renderCal(); renderSlots();
 }
 
 function renderCal() {
-  const title=document.getElementById('calTitle');
-  title.textContent=`${MONTHS[calMonth]} ${calYear}`;
-  const grid=document.getElementById('calGrid');
-  const now=new Date(); now.setHours(0,0,0,0);
-  const first=new Date(calYear,calMonth,1);
-  const last=new Date(calYear,calMonth+1,0);
-  let html=DAYS.map(d=>`<div class="cal-day header">${d}</div>`).join('');
-  let startDay=first.getDay();
-  for(let i=0;i<startDay;i++) html+=`<div class="cal-day empty"></div>`;
-  for(let i=1;i<=last.getDate();i++){
-    const d=new Date(calYear,calMonth,i);
-    const isPast=d<now;
-    const isTod=d.getTime()===now.getTime();
-    const isSel=selectedDate && d.getTime()===selectedDate.getTime();
-    const dow=d.getDay();
-    const isAvail=!isPast && dow!==0; // available Mon-Sat, exclude past & Sunday
-    let cls='cal-day';
-    if(isSel) cls+=' selected';
-    else if(isAvail) cls+=' avail';
-    else cls+=' unavail';
-    if(isTod) cls+=' today';
-    const click=isAvail?`onclick="selectDate(${calYear},${calMonth},${i})"`:''
-    html+=`<div class="${cls}" ${click}>${i}</div>`;
+  document.getElementById('calTitle').textContent = `${MONTHS[calMonth]} ${calYear}`;
+  const grid  = document.getElementById('calGrid');
+  const now   = new Date(); now.setHours(0,0,0,0);
+  const first = new Date(calYear, calMonth, 1);
+  const last  = new Date(calYear, calMonth+1, 0);
+  const availDates = new Set(doctorSlots.map(s => s.date));
+
+  let html = DAYS.map(d=>`<div class="cal-day header">${d}</div>`).join('');
+  for(let i = 0; i < first.getDay(); i++) html += `<div class="cal-day empty"></div>`;
+  for(let i = 1; i <= last.getDate(); i++) {
+    const d   = new Date(calYear, calMonth, i);
+    const ds  = dateStr(d);
+    const isPast  = d < now;
+    const isTod   = d.getTime() === now.getTime();
+    const isSel   = selectedDate && d.getTime() === selectedDate.getTime();
+    const isAvail = !isPast && availDates.has(ds);
+    let cls = 'cal-day' + (isSel ? ' selected' : isAvail ? ' avail' : ' unavail') + (isTod ? ' today' : '');
+    const click = isAvail ? `onclick="selectDate(${calYear},${calMonth},${i})"` : '';
+    html += `<div class="${cls}" ${click}>${i}</div>`;
   }
-  grid.innerHTML=html;
+  grid.innerHTML = html;
 }
 
-function selectDate(y,m,day) {
-  selectedDate=new Date(y,m,day);
-  selectedTime=null;
+function selectDate(y, m, day) {
+  selectedDate = new Date(y, m, day);
+  selectedTime = null; selectedSlotId = null;
   renderCal(); renderSlots();
 }
 
 function renderSlots() {
-  const c=document.getElementById('timeSlots');
-  if(!selectedDate){c.innerHTML='<span style="font-size:.82rem;color:var(--muted)">Изберете дата</span>';return;}
-  // Randomly hide some slots for realism
-  const seed=selectedDate.getDate()+selectedDate.getMonth()*31;
-  c.innerHTML=TIME_SLOTS.filter((_,i)=>(i+seed)%3!==0).map(t=>`
-    <div class="time-slot${t===selectedTime?' selected':''}" onclick="selectTime('${t}')">${t}</div>
-  `).join('');
+  const c = document.getElementById('timeSlots');
+  if(!selectedDate) {
+    c.innerHTML = '<span style="font-size:.82rem;color:var(--muted)">Изберете дата</span>'; return;
+  }
+  const ds = dateStr(selectedDate);
+  const daySlots = doctorSlots.filter(s => s.date === ds)
+    .sort((a,b) => a.time.localeCompare(b.time));
+  if(!daySlots.length) {
+    c.innerHTML = '<span style="font-size:.82rem;color:var(--muted)">Няма свободни часове</span>'; return;
+  }
+  c.innerHTML = daySlots.map(s => {
+    const t = s.time.slice(0,5);
+    return `<div class="time-slot${s.id===selectedSlotId?' selected':''}" onclick="selectTime('${t}','${s.id}')">${t}</div>`;
+  }).join('');
 }
 
-function selectTime(t) {
-  selectedTime=t;
+function selectTime(t, slotId) {
+  selectedTime = t; selectedSlotId = slotId;
   renderSlots();
 }
 
+// ══════════════════════════════════════════
+//  BOOKING FORM
+// ══════════════════════════════════════════
 function confirmBooking() {
-  if(!selectedDate||!selectedTime){
-    alert('Моля, изберете дата и час за консултацията.');return;
+  if(!selectedDate || !selectedTime) {
+    alert('Моля, изберете дата и час за консултацията.'); return;
   }
-  const dateStr=selectedDate.toLocaleDateString('bg-BG',{day:'numeric',month:'long',year:'numeric'});
-  document.getElementById('modalMsg').innerHTML=
-    `Консултация с <strong>${currentDoctor.name}</strong><br>
-     <strong>${dateStr}</strong> в <strong>${selectedTime}</strong> ч.<br><br>
-     Ще получите потвърждение по имейл.`;
-  document.getElementById('overlay').classList.add('show');
+  const dateLabel = selectedDate.toLocaleDateString('bg-BG',{day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('bookingFormContainer').innerHTML = `
+    <div style="margin-top:.5rem">
+      <div style="font-size:.88rem;font-weight:700;color:var(--navy);margin-bottom:.9rem;padding:.6rem .8rem;background:var(--green3);border-radius:8px">
+        📅 ${escHtml(currentDoctor.name)}<br>${escHtml(dateLabel)} – ${escHtml(selectedTime)} ч.
+      </div>
+      <div style="margin-bottom:.65rem">
+        <label style="font-size:.8rem;font-weight:600;color:var(--muted);display:block;margin-bottom:.25rem">Три имена *</label>
+        <input id="bkName" type="text" required placeholder="Иван Иванов" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:.5rem .7rem;font-size:.9rem;outline:none">
+      </div>
+      <div style="margin-bottom:.65rem">
+        <label style="font-size:.8rem;font-weight:600;color:var(--muted);display:block;margin-bottom:.25rem">Имейл *</label>
+        <input id="bkEmail" type="email" required placeholder="email@example.com" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:.5rem .7rem;font-size:.9rem;outline:none">
+      </div>
+      <div style="margin-bottom:.65rem">
+        <label style="font-size:.8rem;font-weight:600;color:var(--muted);display:block;margin-bottom:.25rem">Телефон *</label>
+        <input id="bkPhone" type="tel" required placeholder="0888 123 456" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:.5rem .7rem;font-size:.9rem;outline:none">
+      </div>
+      <div style="margin-bottom:1rem">
+        <label style="font-size:.8rem;font-weight:600;color:var(--muted);display:block;margin-bottom:.25rem">Оплакване / бележка (по желание)</label>
+        <textarea id="bkComplaint" rows="2" placeholder="Опишете накратко..." style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:.5rem .7rem;font-size:.9rem;resize:vertical;outline:none"></textarea>
+      </div>
+      <button class="btn-book" onclick="submitBooking()">✅ Потвърди резервацията</button>
+      <button onclick="cancelBookingForm()" style="width:100%;background:none;border:1.5px solid var(--border);border-radius:8px;padding:.55rem;font-size:.85rem;color:var(--muted);cursor:pointer;margin-top:.5rem">← Назад</button>
+    </div>
+  `;
 }
 
-function closeModal(){document.getElementById('overlay').classList.remove('show');}
+function cancelBookingForm() {
+  document.getElementById('bookingFormContainer').innerHTML = `
+    <button class="btn-book" onclick="confirmBooking()">📅 Резервирай час</button>
+    <div class="book-note">Безплатна отмяна до 2 часа преди консултацията</div>
+  `;
+}
+
+async function submitBooking() {
+  const name      = document.getElementById('bkName')?.value.trim();
+  const email     = document.getElementById('bkEmail')?.value.trim();
+  const phone     = document.getElementById('bkPhone')?.value.trim();
+  const complaint = document.getElementById('bkComplaint')?.value.trim();
+
+  if(!name || !email || !phone) { alert('Моля, попълнете задължителните полета.'); return; }
+
+  const btn = document.querySelector('#bookingFormContainer .btn-book');
+  if(btn) { btn.disabled = true; btn.textContent = 'Запазване...'; }
+
+  const { error: bkErr } = await db.from('bookings').insert({
+    doctor_id:     currentDoctor.id,
+    slot_id:       selectedSlotId,
+    patient_name:  name,
+    patient_email: email,
+    patient_phone: phone,
+    complaint:     complaint || null,
+    status:        'pending',
+  });
+
+  if(bkErr) {
+    alert('Грешка при резервацията: ' + bkErr.message);
+    if(btn) { btn.disabled = false; btn.textContent = '✅ Потвърди резервацията'; }
+    return;
+  }
+
+  await db.from('time_slots').update({ is_booked: true }).eq('id', selectedSlotId);
+  doctorSlots = doctorSlots.filter(s => s.id !== selectedSlotId);
+
+  const dateLabel = selectedDate.toLocaleDateString('bg-BG',{day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('modalMsg').innerHTML =
+    `Консултация с <strong>${escHtml(currentDoctor.name)}</strong><br>
+     <strong>${escHtml(dateLabel)}</strong> в <strong>${escHtml(selectedTime)}</strong> ч.<br><br>
+     Ще получите потвърждение по имейл.`;
+  document.getElementById('overlay').classList.add('show');
+
+  cancelBookingForm();
+  selectedDate = null; selectedTime = null; selectedSlotId = null;
+  renderCal(); renderSlots();
+}
+
+function closeModal() { document.getElementById('overlay').classList.remove('show'); }
 
 // ══════════════════════════════════════════
 //  PROFILE
 // ══════════════════════════════════════════
-function showProfile(id) {
-  currentDoctor=DOCTORS.find(d=>d.id===id);
-  const d=currentDoctor;
+async function showProfile(id) {
+  const d = allDoctors.find(doc => String(doc.id) === String(id));
+  if(!d) return;
+  currentDoctor = d;
 
-  document.getElementById('profAvatar').innerHTML=
-    `<div style="width:120px;height:120px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:2.5rem;font-weight:700;color:#fff;background:${d.color}">${d.initials}</div>`;
-  document.getElementById('profName').textContent=d.name;
-  document.getElementById('profSpecs').innerHTML=`<span class="spec-badge">${d.spec}</span>`;
-  document.getElementById('profStars').textContent=stars(d.rating);
-  document.getElementById('profRatingTxt').textContent=`${d.rating} от 5 (${d.reviews} отзива)`;
-  document.getElementById('profMeta').innerHTML=`
-    <div class="meta-item">🏥 ${d.experience} г. опит</div>
-    <div class="meta-item">🌐 ${d.langs.length} езика</div>
-    <div class="meta-item">${d.availToday?'🟢 Наличен днес':'🔴 Не е наличен днес'}</div>
+  const col = d.avatar_color || '#1d4e89';
+  const ini = d.initials || '';
+  const avInner = d.photo_url
+    ? `<img src="${escHtml(d.photo_url)}" onerror="this.style.display='none'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">${escHtml(ini)}`
+    : escHtml(ini);
+  document.getElementById('profAvatar').innerHTML =
+    `<div style="width:120px;height:120px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:2.5rem;font-weight:700;color:#fff;background:${escHtml(col)};overflow:hidden">${avInner}</div>`;
+
+  document.getElementById('profName').textContent      = d.name;
+  document.getElementById('profSpecs').innerHTML       = `<span class="spec-badge">${escHtml(d.specialty||'')}</span>`;
+  document.getElementById('profStars').textContent     = stars(d.rating||0);
+  document.getElementById('profRatingTxt').textContent = `${(+(d.rating||0)).toFixed(1)} от 5 (${d.review_count||0} отзива)`;
+
+  const langArr = Array.isArray(d.languages) ? d.languages
+    : (typeof d.languages==='string' && d.languages ? d.languages.split(',').map(l=>l.trim()) : ['Български']);
+  document.getElementById('profMeta').innerHTML = `
+    <div class="meta-item">🏥 ${d.experience_years||0} г. опит</div>
+    <div class="meta-item">🌐 ${langArr.length} езика</div>
+    <div class="meta-item">${d.is_available?'🟢 Наличен':'🔴 Не е наличен'}</div>
   `;
 
-  document.getElementById('profAbout').textContent=d.about;
-  document.getElementById('profEducation').innerHTML=d.education.map(e=>`
-    <div class="cv-item">
-      <div class="cv-year">${e.year}</div>
-      <div class="cv-text"><strong>${e.title}</strong><span>${e.sub}</span></div>
-    </div>
-  `).join('');
-  document.getElementById('profTags').innerHTML=d.tags.map(t=>`<span class="tag">${t}</span>`).join('');
-  document.getElementById('profLangs').innerHTML=d.langs.map(l=>`<div class="lang-item">🗣 ${l}</div>`).join('');
-  document.getElementById('profReviews').innerHTML=d.reviews_list.map(r=>`
-    <div class="review">
-      <div class="review-top">
-        <div class="reviewer">${r.name}</div>
-        <div class="review-date">${r.date}</div>
-      </div>
-      <div class="stars" style="font-size:.85rem;margin:.2rem 0">${'★'.repeat(r.stars)}${'☆'.repeat(5-r.stars)}</div>
-      <div class="review-text">${r.text}</div>
-    </div>
-  `).join('');
+  document.getElementById('profAbout').textContent = d.description || '';
+  document.getElementById('profEducation').innerHTML = '<p style="font-size:.9rem;color:var(--muted)">—</p>';
 
-  document.getElementById('bookPrice').innerHTML=`${d.price} лв. <small>/ консултация</small>`;
-  document.getElementById('bookDuration').textContent=`Продължителност: ${d.duration} мин.`;
+  const tagArr = Array.isArray(d.tags) ? d.tags
+    : (typeof d.tags==='string' && d.tags ? d.tags.split(',').map(t=>t.trim()) : []);
+  document.getElementById('profTags').innerHTML = tagArr.length
+    ? tagArr.map(t=>`<span class="tag">${escHtml(t)}</span>`).join('')
+    : '<span style="color:var(--muted);font-size:.9rem">—</span>';
 
-  selectedDate=null; selectedTime=null;
+  document.getElementById('profLangs').innerHTML = langArr.map(l=>`<div class="lang-item">🗣 ${escHtml(l)}</div>`).join('');
+
+  document.getElementById('bookPrice').innerHTML    = `${d.price} лв. <small>/ консултация</small>`;
+  document.getElementById('bookDuration').textContent = `Продължителност: ${d.duration||30} мин.`;
+
+  cancelBookingForm();
+  await loadDoctorSlots(d.id);
+  selectedDate = null; selectedTime = null; selectedSlotId = null;
   initCal(); renderSlots();
 
+  loadReviews(d.id);
   showPage('profilePage');
   window.scrollTo({top:0,behavior:'smooth'});
+}
+
+async function loadDoctorSlots(doctorId) {
+  const today = dateStr(new Date());
+  const { data } = await db.from('time_slots').select('*')
+    .eq('doctor_id', doctorId).eq('is_booked', false).gte('date', today)
+    .order('date').order('time');
+  doctorSlots = data || [];
+}
+
+async function loadReviews(doctorId) {
+  const el = document.getElementById('profReviews');
+  el.innerHTML = '<p style="font-size:.9rem;color:var(--muted)">Зареждане...</p>';
+  const { data } = await db.from('reviews').select('*')
+    .eq('doctor_id', doctorId).order('created_at', {ascending:false}).limit(10);
+  if(!data?.length) {
+    el.innerHTML = '<p style="font-size:.9rem;color:var(--muted)">Все още няма отзиви.</p>'; return;
+  }
+  el.innerHTML = data.map(r => `
+    <div class="review">
+      <div class="review-top">
+        <div class="reviewer">${escHtml(r.patient_name||'Анонимен')}</div>
+        <div class="review-date">${new Date(r.created_at).toLocaleDateString('bg-BG',{day:'numeric',month:'long',year:'numeric'})}</div>
+      </div>
+      <div class="stars" style="font-size:.85rem;margin:.2rem 0">${'★'.repeat(r.rating||0)}${'☆'.repeat(5-(r.rating||0))}</div>
+      <div class="review-text">${escHtml(r.comment||'')}</div>
+    </div>
+  `).join('');
 }
 
 // ══════════════════════════════════════════
@@ -1006,7 +771,6 @@ function showPage(id) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById(id).classList.add('active');
 }
-
 function showHome() {
   showPage('homePage');
   window.scrollTo({top:0,behavior:'smooth'});
@@ -1015,7 +779,8 @@ function showHome() {
 // ══════════════════════════════════════════
 //  INIT
 // ══════════════════════════════════════════
-applyFilters();
+loadDoctors();
+
 </script>
 </body>
 </html>
