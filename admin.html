@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Администраторски Панел – Ilchevska Pharmacy</title>
+  <style>
+    :root {
+      --primary: #0d2d4e;
+      --primary-dark: #091f36;
+      --primary-light: #1a4570;
+      --accent: #2a9d5c;
+      --accent-dark: #1e7a45;
+      --accent-light: #3db870;
+      --bg: #f0f4f8;
+      --card-bg: #ffffff;
+      --sidebar-bg: #091f36;
+      --text: #1a2636;
+      --text-light: #4a5568;
+      --muted: #8a9ab0;
+      --border: #dde4ec;
+      --shadow: 0 2px 12px rgba(13,45,78,0.10);
+      --radius: 12px;
+      --radius-sm: 8px;
+      --transition: 0.2s ease;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); }
+
+    /* ── LOGIN ───────────────────────────────────────── */
+    #loginPage {
+      min-height: 100vh;
+      background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 50%, var(--accent) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .login-card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      padding: 44px 40px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .login-logo { text-align: center; margin-bottom: 28px; }
+    .login-logo .logo-icon { font-size: 2.5rem; display: block; margin-bottom: 8px; }
+    .login-logo h1 { font-size: 1.2rem; color: var(--primary); font-weight: 800; }
+    .login-logo p  { font-size: 0.82rem; color: var(--muted); margin-top: 4px; }
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-light); margin-bottom: 5px; }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 13px;
+      font-size: 0.92rem;
+      color: var(--text);
+      outline: none;
+      transition: border-color var(--transition);
+      background: #fff;
+      font-family: inherit;
+    }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus { border-color: var(--accent); }
+    .form-group textarea { resize: vertical; }
+    .btn-primary {
+      width: 100%;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background var(--transition);
+    }
+    .btn-primary:hover { background: var(--accent-dark); }
+    .error-msg { color: #e53e3e; font-size: 0.82rem; margin-top: 8px; min-height: 20px; }
+
+    /* ── ADMIN PAGE ──────────────────────────────────── */
+    #adminPage {
+      display: none;
+      min-height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 230px;
+      background: var(--sidebar-bg);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0; left: 0;
+      height: 100vh;
+      overflow-y: auto;
+      z-index: 50;
+    }
+    .sidebar-header {
+      padding: 22px 18px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .sidebar-header .logo-text { font-size: 0.75rem; opacity: 0.6; }
+    .sidebar-header h2 { font-size: 0.95rem; font-weight: 800; margin-top: 4px; }
+    .sidebar-nav { padding: 12px 0; flex: 1; }
+    .sidebar-link {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      padding: 11px 18px;
+      color: rgba(255,255,255,0.75);
+      cursor: pointer;
+      font-size: 0.88rem;
+      transition: var(--transition);
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+    }
+    .sidebar-link:hover  { background: rgba(255,255,255,0.1); color: #fff; }
+    .sidebar-link.active { background: var(--accent); color: #fff; }
+    .sidebar-link .nav-icon { font-size: 1rem; width: 20px; text-align: center; }
+    .sidebar-footer { padding: 16px 18px; border-top: 1px solid rgba(255,255,255,0.1); }
+    .btn-logout {
+      width: 100%;
+      background: rgba(255,255,255,0.1);
+      border: none;
+      color: rgba(255,255,255,0.8);
+      border-radius: var(--radius-sm);
+      padding: 9px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .btn-logout:hover { background: rgba(255,80,80,0.25); color: #fff; }
+
+    /* Main */
+    .main-content {
+      margin-left: 230px;
+      padding: 28px 32px;
+      min-height: 100vh;
+    }
+    @media (max-width: 700px) {
+      .sidebar { width: 100%; height: auto; position: relative; }
+      .main-content { margin-left: 0; padding: 16px; }
+    }
+
+    .tab-content { display: none; }
+    .tab-header { margin-bottom: 22px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+    .tab-header h2 { font-size: 1.4rem; font-weight: 800; color: var(--primary); }
+
+    /* Buttons */
+    .btn-add {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 10px 20px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background var(--transition);
+    }
+    .btn-add:hover { background: var(--accent-dark); }
+
+    .btn-small {
+      padding: 5px 10px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      transition: background var(--transition);
+    }
+    .btn-blue   { background: #dbeafe; color: #1d4ed8; }
+    .btn-blue:hover   { background: #bfdbfe; }
+    .btn-green  { background: #dcfce7; color: #166534; }
+    .btn-green:hover  { background: #bbf7d0; }
+    .btn-red    { background: #fee2e2; color: #991b1b; }
+    .btn-red:hover    { background: #fecaca; }
+    .btn-orange { background: #ffedd5; color: #9a3412; }
+    .btn-orange:hover { background: #fed7aa; }
+
+    /* Tables */
+    .table-wrap { overflow-x: auto; border-radius: var(--radius); box-shadow: var(--shadow); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--card-bg);
+      font-size: 0.87rem;
+    }
+    thead tr { background: var(--primary); color: #fff; }
+    th { padding: 12px 14px; text-align: left; font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+    td { padding: 11px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tbody tr:hover { background: #f8fafc; }
+    tbody tr:last-child td { border-bottom: none; }
+    td small { display: block; color: var(--muted); font-size: 0.75rem; margin-top: 2px; }
+
+    /* Badge */
+    .badge {
+      display: inline-block;
+      border-radius: 20px;
+      padding: 3px 10px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    .badge.green, .badge.confirmed, .badge.completed { background: #dcfce7; color: #166534; }
+    .badge.red, .badge.cancelled { background: #fee2e2; color: #991b1b; }
+    .badge.pending { background: #fef9c3; color: #854d0e; }
+    .badge.blue { background: #dbeafe; color: #1d4ed8; }
+
+    /* Filter bar */
+    .filter-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+    .filter-bar select {
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      font-size: 0.85rem;
+      color: var(--text);
+      background: var(--card-bg);
+      outline: none;
+      cursor: pointer;
+    }
+    .filter-bar select:focus { border-color: var(--accent); }
+    .status-select {
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 8px;
+      font-size: 0.78rem;
+      color: var(--text);
+      background: #fff;
+      outline: none;
+      cursor: pointer;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(9,31,54,0.72);
+      z-index: 200;
+      overflow-y: auto;
+      padding: 20px;
+      backdrop-filter: blur(3px);
+    }
+    .modal-box {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      width: 100%;
+      max-width: 680px;
+      margin: 40px auto;
+      padding: 32px 28px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.28);
+      animation: modalIn 0.25s ease;
+      position: relative;
+    }
+    @keyframes modalIn { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    .modal-title {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: var(--primary);
+      margin-bottom: 20px;
+    }
+    .modal-close {
+      position: absolute;
+      top: 16px; right: 16px;
+      background: var(--bg);
+      border: none;
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      font-size: 1rem;
+      cursor: pointer;
+      color: var(--text-light);
+      transition: var(--transition);
+    }
+    .modal-close:hover { background: #fee2e2; color: #991b1b; }
+
+    .form-row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .form-row .form-group { flex: 1; min-width: 160px; }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-light); margin-bottom: 4px; }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 9px 12px;
+      font-size: 0.88rem;
+      color: var(--text);
+      outline: none;
+      transition: border-color var(--transition);
+      background: #fff;
+      font-family: inherit;
+    }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus { border-color: var(--accent); }
+    .form-group textarea { resize: vertical; height: 80px; }
+    .checkbox-row { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; font-size: 0.88rem; color: var(--text-light); }
+    .checkbox-row input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; accent-color: var(--accent); }
+    .modal-footer { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
+    .btn-cancel {
+      background: var(--bg);
+      color: var(--text-light);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 20px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .btn-cancel:hover { border-color: var(--muted); }
+    .btn-save {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 10px 24px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background var(--transition);
+    }
+    .btn-save:hover { background: var(--accent-dark); }
+
+    .empty-row td { text-align: center; padding: 36px; color: var(--muted); }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!--  LOGIN PAGE                                           -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div id="loginPage">
+  <div class="login-card">
+    <div class="login-logo">
+      <span class="logo-icon">🔐</span>
+      <h1>Ilchevska Pharmacy</h1>
+      <p>Администраторски достъп</p>
+    </div>
+    <div class="form-group">
+      <label>Имейл</label>
+      <input id="adminEmail" type="email" placeholder="todor@ilchevska.bg" onkeydown="if(event.key==='Enter')adminLogin()">
+    </div>
+    <div class="form-group">
+      <label>Парола</label>
+      <input id="adminPw" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')adminLogin()">
+    </div>
+    <p class="error-msg" id="adminLoginError"></p>
+    <button class="btn-primary" onclick="adminLogin()">Вход</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!--  ADMIN PAGE                                           -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div id="adminPage" style="display:none; flex-direction:row; min-height:100vh;">
+
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo-text">💊 Ilchevska Pharmacy</div>
+      <h2>Администратор</h2>
+    </div>
+    <div class="sidebar-nav">
+      <button class="sidebar-link" data-tab="doctors" onclick="loadTab('doctors')">
+        <span class="nav-icon">👨‍⚕️</span> Лекари
+      </button>
+      <button class="sidebar-link" data-tab="bookings" onclick="loadTab('bookings')">
+        <span class="nav-icon">📋</span> Резервации
+      </button>
+    </div>
+    <div class="sidebar-footer">
+      <button class="btn-logout" onclick="adminLogout()">🚪 Изход</button>
+    </div>
+  </nav>
+
+  <!-- Main content -->
+  <div class="main-content">
+
+    <!-- TAB: ЛЕКАРИ -->
+    <div id="tab-doctors" class="tab-content">
+      <div class="tab-header">
+        <h2>Управление на лекари</h2>
+        <button class="btn-add" onclick="showAddDoctorForm()">+ Добави лекар</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Лекар</th>
+              <th>Специалност</th>
+              <th>Цена</th>
+              <th>Рейтинг</th>
+              <th>Статус</th>
+              <th>Действия</th>
+            </tr>
+          </thead>
+          <tbody id="doctorsList">
+            <tr class="empty-row"><td colspan="6">Зареждане...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB: РЕЗЕРВАЦИИ -->
+    <div id="tab-bookings" class="tab-content">
+      <div class="tab-header">
+        <h2>Всички резервации</h2>
+      </div>
+      <div class="filter-bar">
+        <label style="font-size:0.82rem;color:var(--muted);">Статус:</label>
+        <select id="bookingStatusFilter" onchange="loadAllBookings()">
+          <option value="">Всички</option>
+          <option value="confirmed">Потвърдени</option>
+          <option value="completed">Завършени</option>
+          <option value="cancelled">Отказани</option>
+          <option value="pending">Чакащи</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Дата / Час</th>
+              <th>Лекар</th>
+              <th>Пациент</th>
+              <th>Телефон</th>
+              <th>Оплакване</th>
+              <th>Статус</th>
+              <th>Промени</th>
+            </tr>
+          </thead>
+          <tbody id="allBookingsList">
+            <tr class="empty-row"><td colspan="7">Зареждане...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!--  DOCTOR FORM MODAL                                    -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div id="doctorFormModal" class="modal-overlay" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal-box">
+    <button class="modal-close" onclick="document.getElementById('doctorFormModal').style.display='none'">✕</button>
+    <div class="modal-title" id="doctorFormTitle">Добави лекар</div>
+    <input type="hidden" id="doctorFormId">
+    <form onsubmit="saveDoctor(event)">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Три имена *</label>
+          <input id="dName" type="text" required placeholder="д-р Иван Петров">
+        </div>
+        <div class="form-group">
+          <label>Имейл</label>
+          <input id="dEmail" type="email" placeholder="doctor@example.com">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Специалност *</label>
+          <select id="dSpec" required>
+            <option value="">-- Изберете --</option>
+            <option>Кардиолог</option>
+            <option>Дерматолог</option>
+            <option>Педиатър</option>
+            <option>Невролог</option>
+            <option>Ортопед</option>
+            <option>Гинеколог</option>
+            <option>Офталмолог</option>
+            <option>Психолог</option>
+            <option>Диетолог</option>
+            <option>Фармацевт</option>
+            <option>Уролог</option>
+            <option>Ендокринолог</option>
+            <option>Пулмолог</option>
+            <option>Гастроентеролог</option>
+            <option>Хирург</option>
+            <option>Ревматолог</option>
+            <option>Нефролог</option>
+            <option>Онколог</option>
+            <option>Алерголог</option>
+            <option>Имунолог</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Цена (лв.) *</label>
+          <input id="dPrice" type="number" min="0" required placeholder="50">
+        </div>
+        <div class="form-group">
+          <label>Продължителност (мин)</label>
+          <input id="dDuration" type="number" min="10" max="180" value="30">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Години опит</label>
+          <input id="dExp" type="number" min="0" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label>Инициали (за аватар)</label>
+          <input id="dInitials" type="text" maxlength="3" placeholder="ИП">
+        </div>
+        <div class="form-group">
+          <label>Цвят на аватар</label>
+          <input id="dColor" type="color" value="#0d2d4e" style="height:42px;cursor:pointer">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Описание</label>
+        <textarea id="dDescription" rows="3" placeholder="Кратко описание на специалиста..."></textarea>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Езици (разделени ',')</label>
+          <input id="dLangs" type="text" placeholder="Български, Английски">
+        </div>
+        <div class="form-group">
+          <label>Тагове (разделени ',')</label>
+          <input id="dTags" type="text" placeholder="ЕКГ, Ехокардиография">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Снимка (URL)</label>
+        <input id="dPhoto" type="url" placeholder="https://...">
+      </div>
+      <div class="checkbox-row">
+        <input id="dAvail" type="checkbox" checked>
+        <label for="dAvail">Активен / Наличен за резервации</label>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-cancel" onclick="document.getElementById('doctorFormModal').style.display='none'">Отказ</button>
+        <button type="submit" class="btn-save">💾 Запази</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ── SCRIPTS ──────────────────────────────────────────── -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script src="supabase-config.js"></script>
+<script>
+  let db;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    db = initSupabase();
+    checkAdminSession();
+  });
+
+  async function checkAdminSession() {
+    const { data: { session } } = await db.auth.getSession();
+    if (session && session.user.email === ADMIN_EMAIL) showAdmin();
+  }
+
+  async function adminLogin() {
+    const email = document.getElementById('adminEmail').value.trim();
+    const pw    = document.getElementById('adminPw').value;
+    const errEl = document.getElementById('adminLoginError');
+    errEl.textContent = '';
+
+    const { data, error } = await db.auth.signInWithPassword({ email, password: pw });
+    if (error) {
+      errEl.textContent = 'Достъпът е отказан';
+      return;
+    }
+    if (data.user.email !== ADMIN_EMAIL) {
+      errEl.textContent = 'Достъпът е отказан';
+      await db.auth.signOut();
+      return;
+    }
+    showAdmin();
+  }
+
+  async function adminLogout() {
+    await db.auth.signOut();
+    location.reload();
+  }
+
+  function showAdmin() {
+    document.getElementById('loginPage').style.display = 'none';
+    document.getElementById('adminPage').style.display = 'flex';
+    loadTab('doctors');
+  }
+
+  function loadTab(tab) {
+    document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.sidebar-link').forEach(el => el.classList.remove('active'));
+    document.getElementById('tab-' + tab).style.display = 'block';
+    document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+    if      (tab === 'doctors')  loadDoctors();
+    else if (tab === 'bookings') loadAllBookings();
+  }
+
+  // ── DOCTORS CRUD ──────────────────────────────────────
+  async function loadDoctors() {
+    const { data } = await db.from('doctors').select('*').order('name');
+    const el = document.getElementById('doctorsList');
+    if (!data?.length) {
+      el.innerHTML = '<tr class="empty-row"><td colspan="6">Няма добавени лекари</td></tr>';
+      return;
+    }
+    el.innerHTML = (data||[]).map(d => `
+      <tr>
+        <td><strong>${escHtml(d.name)}</strong></td>
+        <td>${escHtml(d.specialty)}</td>
+        <td>${d.price} лв.</td>
+        <td>${(d.rating||0).toFixed(1)} ★</td>
+        <td><span class="badge ${d.is_available?'green':'red'}">${d.is_available?'Активен':'Неактивен'}</span></td>
+        <td style="display:flex;gap:5px;flex-wrap:wrap;">
+          <button onclick="editDoctor('${d.id}')" class="btn-small btn-blue">Редактирай</button>
+          <button onclick="toggleDoctor('${d.id}', ${!d.is_available})" class="btn-small ${d.is_available?'btn-orange':'btn-green'}">${d.is_available?'Деактивирай':'Активирай'}</button>
+          <button onclick="deleteDoctor('${d.id}')" class="btn-small btn-red">Изтрий</button>
+        </td>
+      </tr>`).join('');
+  }
+
+  function showAddDoctorForm() {
+    document.getElementById('doctorFormTitle').textContent = 'Добави лекар';
+    document.getElementById('doctorFormId').value = '';
+    ['dName','dEmail','dDescription','dLangs','dTags','dPhoto','dInitials'].forEach(id => {
+      const el = document.getElementById(id); if(el) el.value = '';
+    });
+    document.getElementById('dSpec').value     = '';
+    document.getElementById('dPrice').value    = '';
+    document.getElementById('dDuration').value = '30';
+    document.getElementById('dExp').value      = '';
+    document.getElementById('dColor').value    = '#0d2d4e';
+    document.getElementById('dAvail').checked  = true;
+    document.getElementById('doctorFormModal').style.display = 'flex';
+  }
+
+  async function editDoctor(id) {
+    const { data: d, error } = await db.from('doctors').select('*').eq('id', id).single();
+    if (error || !d) { alert('Грешка при зареждане на лекаря'); return; }
+    document.getElementById('doctorFormTitle').textContent = 'Редактирай лекар';
+    document.getElementById('doctorFormId').value   = d.id;
+    document.getElementById('dName').value          = d.name          || '';
+    document.getElementById('dEmail').value         = d.email         || '';
+    document.getElementById('dSpec').value          = d.specialty     || '';
+    document.getElementById('dPrice').value         = d.price         || '';
+    document.getElementById('dDuration').value      = d.duration      || 30;
+    document.getElementById('dExp').value           = d.experience    || '';
+    document.getElementById('dDescription').value   = d.description   || '';
+    document.getElementById('dLangs').value         = (d.languages||[]).join(', ');
+    document.getElementById('dTags').value          = (d.tags||[]).join(', ');
+    document.getElementById('dPhoto').value         = d.photo_url     || '';
+    document.getElementById('dColor').value         = d.color         || '#0d2d4e';
+    document.getElementById('dInitials').value      = d.initials      || '';
+    document.getElementById('dAvail').checked       = d.is_available;
+    document.getElementById('doctorFormModal').style.display = 'flex';
+  }
+
+  async function saveDoctor(e) {
+    e.preventDefault();
+    const id = document.getElementById('doctorFormId').value;
+    const payload = {
+      name:         document.getElementById('dName').value.trim(),
+      email:        document.getElementById('dEmail').value.trim() || null,
+      specialty:    document.getElementById('dSpec').value.trim(),
+      price:        parseInt(document.getElementById('dPrice').value),
+      duration:     parseInt(document.getElementById('dDuration').value) || 30,
+      experience:   parseInt(document.getElementById('dExp').value)      || 0,
+      description:  document.getElementById('dDescription').value.trim(),
+      languages:    document.getElementById('dLangs').value.split(',').map(l=>l.trim()).filter(Boolean),
+      tags:         document.getElementById('dTags').value.split(',').map(t=>t.trim()).filter(Boolean),
+      photo_url:    document.getElementById('dPhoto').value.trim()     || null,
+      color:        document.getElementById('dColor').value,
+      initials:     document.getElementById('dInitials').value.trim()  || null,
+      is_available: document.getElementById('dAvail').checked,
+    };
+
+    let error;
+    if (id) {
+      ({ error } = await db.from('doctors').update(payload).eq('id', id));
+    } else {
+      ({ error } = await db.from('doctors').insert(payload));
+    }
+    if (error) { alert('Грешка: ' + error.message); return; }
+    document.getElementById('doctorFormModal').style.display = 'none';
+    loadDoctors();
+  }
+
+  async function toggleDoctor(id, val) {
+    await db.from('doctors').update({ is_available: val }).eq('id', id);
+    loadDoctors();
+  }
+
+  async function deleteDoctor(id) {
+    if (!confirm('Изтриване на лекаря? Това ще изтрие и всички негови часове и резервации.')) return;
+    await db.from('doctors').delete().eq('id', id);
+    loadDoctors();
+  }
+
+  // ── ALL BOOKINGS ──────────────────────────────────────
+  async function loadAllBookings() {
+    const statusFilter = document.getElementById('bookingStatusFilter')?.value || '';
+    let query = db.from('bookings')
+      .select('*, doctors(name, specialty), time_slots(date, time)')
+      .order('created_at', { ascending: false });
+    if (statusFilter) query = query.eq('status', statusFilter);
+    const { data, error } = await query;
+
+    const el = document.getElementById('allBookingsList');
+    if (error) {
+      el.innerHTML = `<tr class="empty-row"><td colspan="7">Грешка: ${escHtml(error.message)}</td></tr>`;
+      return;
+    }
+    if (!data?.length) {
+      el.innerHTML = '<tr class="empty-row"><td colspan="7">Няма резервации</td></tr>';
+      return;
+    }
+    el.innerHTML = data.map(b => `
+      <tr>
+        <td>${escHtml(b.time_slots?.date||'?')}<small>${escHtml(b.time_slots?.time?.slice(0,5)||'?')}</small></td>
+        <td>${escHtml(b.doctors?.name||'?')}<small>${escHtml(b.doctors?.specialty||'')}</small></td>
+        <td>${escHtml(b.patient_name)}<small>${escHtml(b.patient_email)}</small></td>
+        <td>${escHtml(b.patient_phone||'–')}</td>
+        <td><small>${escHtml(b.complaint||'–')}</small></td>
+        <td><span class="badge ${b.status}">${escHtml(b.status)}</span></td>
+        <td>
+          <select class="status-select" onchange="adminUpdateBooking('${b.id}', this.value)">
+            ${['confirmed','completed','cancelled','pending'].map(s =>
+              `<option value="${s}" ${b.status===s?'selected':''}>${s}</option>`
+            ).join('')}
+          </select>
+        </td>
+      </tr>`).join('');
+  }
+
+  async function adminUpdateBooking(id, status) {
+    await db.from('bookings').update({ status }).eq('id', id);
+  }
+
+  // ── HELPERS ───────────────────────────────────────────
+  function escHtml(str) {
+    return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+</script>
+</body>
+</html>

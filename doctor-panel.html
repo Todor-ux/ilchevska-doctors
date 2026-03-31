@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Лекарски Панел – Ilchevska Pharmacy</title>
+  <style>
+    :root {
+      --primary: #0d2d4e;
+      --primary-dark: #091f36;
+      --primary-light: #1a4570;
+      --accent: #2a9d5c;
+      --accent-dark: #1e7a45;
+      --accent-light: #3db870;
+      --bg: #f0f4f8;
+      --card-bg: #ffffff;
+      --sidebar-bg: #0d2d4e;
+      --text: #1a2636;
+      --text-light: #4a5568;
+      --muted: #8a9ab0;
+      --border: #dde4ec;
+      --shadow: 0 2px 12px rgba(13,45,78,0.10);
+      --radius: 12px;
+      --radius-sm: 8px;
+      --transition: 0.2s ease;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); }
+
+    /* ── LOGIN PAGE ──────────────────────────────────── */
+    #loginPage {
+      min-height: 100vh;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 60%, var(--accent) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .login-card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      padding: 44px 40px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+    }
+    .login-logo { text-align: center; margin-bottom: 28px; }
+    .login-logo .logo-icon { font-size: 2.5rem; display: block; margin-bottom: 8px; }
+    .login-logo h1 { font-size: 1.25rem; color: var(--primary); font-weight: 800; }
+    .login-logo p { font-size: 0.82rem; color: var(--muted); margin-top: 4px; }
+    .login-card h2 { font-size: 1.1rem; color: var(--primary); margin-bottom: 20px; font-weight: 700; }
+    .form-group { margin-bottom: 14px; }
+    .form-group label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-light); margin-bottom: 5px; }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 10px 13px;
+      font-size: 0.92rem;
+      color: var(--text);
+      outline: none;
+      transition: border-color var(--transition);
+      background: #fff;
+      font-family: inherit;
+    }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus { border-color: var(--accent); }
+    .form-group textarea { resize: vertical; height: 80px; }
+    .btn-primary {
+      width: 100%;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background var(--transition);
+      margin-top: 4px;
+    }
+    .btn-primary:hover { background: var(--accent-dark); }
+    .error-msg { color: #e53e3e; font-size: 0.82rem; margin-top: 8px; min-height: 20px; }
+
+    /* ── PANEL PAGE ──────────────────────────────────── */
+    #panelPage {
+      display: none;
+      min-height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 240px;
+      background: var(--sidebar-bg);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100vh;
+      overflow-y: auto;
+      z-index: 50;
+    }
+    .sidebar-header {
+      padding: 22px 18px 18px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .sidebar-header .logo-text { font-size: 0.78rem; opacity: 0.6; }
+    .sidebar-header .doctor-name { font-size: 1rem; font-weight: 700; margin-top: 4px; }
+    .sidebar-nav { padding: 12px 0; flex: 1; }
+    .sidebar-link {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      padding: 11px 18px;
+      color: rgba(255,255,255,0.75);
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: var(--transition);
+      border: none;
+      background: none;
+      width: 100%;
+      text-align: left;
+      border-radius: 0;
+    }
+    .sidebar-link:hover { background: rgba(255,255,255,0.1); color: #fff; }
+    .sidebar-link.active { background: var(--accent); color: #fff; }
+    .sidebar-link .nav-icon { font-size: 1.05rem; width: 20px; text-align: center; }
+    .sidebar-footer { padding: 16px 18px; border-top: 1px solid rgba(255,255,255,0.1); }
+    .btn-logout {
+      width: 100%;
+      background: rgba(255,255,255,0.1);
+      border: none;
+      color: rgba(255,255,255,0.8);
+      border-radius: var(--radius-sm);
+      padding: 9px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .btn-logout:hover { background: rgba(255,80,80,0.25); color: #fff; }
+
+    /* Main content */
+    .main-content {
+      margin-left: 240px;
+      flex: 1;
+      padding: 28px 32px;
+      min-height: 100vh;
+    }
+    @media (max-width: 700px) {
+      .sidebar { width: 100%; height: auto; position: relative; flex-direction: row; flex-wrap: wrap; }
+      .main-content { margin-left: 0; padding: 16px; }
+    }
+
+    .tab-content { display: none; }
+    .tab-header { margin-bottom: 22px; }
+    .tab-header h2 { font-size: 1.4rem; font-weight: 800; color: var(--primary); }
+    .tab-header p { font-size: 0.88rem; color: var(--muted); margin-top: 4px; }
+
+    /* Cards */
+    .panel-card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      padding: 22px 24px;
+      box-shadow: var(--shadow);
+      margin-bottom: 20px;
+    }
+    .panel-card h3 { font-size: 0.9rem; font-weight: 700; color: var(--primary); margin-bottom: 14px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    /* Booking items */
+    .booking-item {
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      background: #fafcff;
+      transition: box-shadow var(--transition);
+    }
+    .booking-item:hover { box-shadow: var(--shadow); }
+    .booking-time { font-size: 0.78rem; color: var(--muted); font-weight: 600; margin-bottom: 4px; }
+    .booking-patient { font-size: 0.95rem; margin-bottom: 4px; }
+    .booking-detail { font-size: 0.82rem; color: var(--text-light); margin-bottom: 4px; }
+    .booking-complaint { font-size: 0.82rem; color: var(--text-light); font-style: italic; margin-bottom: 8px; }
+    .booking-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .status-badge {
+      display: inline-block;
+      border-radius: 20px;
+      padding: 3px 10px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    .status-badge.confirmed  { background: #dbeafe; color: #1d4ed8; }
+    .status-badge.completed  { background: #dcfce7; color: #166534; }
+    .status-badge.cancelled  { background: #fee2e2; color: #991b1b; }
+    .status-badge.pending    { background: #fef9c3; color: #854d0e; }
+
+    .btn-small {
+      padding: 5px 11px;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      transition: background var(--transition);
+    }
+    .btn-green  { background: #dcfce7; color: #166534; }
+    .btn-green:hover  { background: #bbf7d0; }
+    .btn-red    { background: #fee2e2; color: #991b1b; }
+    .btn-red:hover    { background: #fecaca; }
+    .btn-blue   { background: #dbeafe; color: #1d4ed8; }
+    .btn-blue:hover   { background: #bfdbfe; }
+    .btn-orange { background: #ffedd5; color: #9a3412; }
+    .btn-orange:hover { background: #fed7aa; }
+
+    .empty-state {
+      text-align: center;
+      padding: 36px 20px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    /* Slots */
+    .slots-date-group { margin-bottom: 18px; }
+    .slots-date-header {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--primary);
+      text-transform: capitalize;
+      margin-bottom: 8px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+    }
+    .slots-list { display: flex; flex-wrap: wrap; gap: 8px; }
+    .slot-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      border-radius: 20px;
+      padding: 5px 12px;
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+    .slot-pill.free    { background: #edf7f2; color: var(--accent-dark); }
+    .slot-pill.booked  { background: #fee2e2; color: #991b1b; }
+    .slot-pill.pending { background: #fef9c3; color: #854d0e; }
+    .slot-del {
+      background: none; border: none; cursor: pointer;
+      color: inherit; font-size: 0.78rem; opacity: 0.6;
+      padding: 0 0 0 2px; line-height: 1;
+    }
+    .slot-del:hover { opacity: 1; }
+    .slot-locked { font-size: 0.7rem; }
+
+    /* Inline form row */
+    .form-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+    .form-row .form-group { flex: 1; min-width: 120px; margin-bottom: 0; }
+    .form-row .btn-primary { width: auto; padding: 10px 18px; flex-shrink: 0; }
+
+    /* Stats */
+    .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    @media (max-width: 600px) { .stats-grid { grid-template-columns: 1fr; } }
+    .stat-card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      padding: 22px;
+      box-shadow: var(--shadow);
+      text-align: center;
+      border-top: 3px solid var(--accent);
+    }
+    .stat-val { font-size: 2rem; font-weight: 800; color: var(--primary); }
+    .stat-lbl { font-size: 0.82rem; color: var(--muted); margin-top: 4px; }
+
+    /* Save msg */
+    .save-msg { font-size: 0.85rem; color: var(--accent); font-weight: 700; margin-top: 8px; min-height: 22px; }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!--  LOGIN PAGE                                           -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div id="loginPage">
+  <div class="login-card">
+    <div class="login-logo">
+      <span class="logo-icon">💊</span>
+      <h1>Ilchevska Pharmacy</h1>
+      <p>Медицинска Платформа</p>
+    </div>
+    <h2>Вход за лекари</h2>
+    <div class="form-group">
+      <label>Имейл</label>
+      <input id="loginEmail" type="email" placeholder="doctor@example.com" onkeydown="if(event.key==='Enter')login()">
+    </div>
+    <div class="form-group">
+      <label>Парола</label>
+      <input id="loginPassword" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')login()">
+    </div>
+    <p class="error-msg" id="loginError"></p>
+    <button class="btn-primary" onclick="login()">Вход</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!--  PANEL PAGE                                           -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div id="panelPage" style="display:none; min-height:100vh; flex-direction:row;">
+
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo-text">💊 Ilchevska Pharmacy</div>
+      <div class="doctor-name" id="doctorNameHeader">Лекар</div>
+    </div>
+    <div class="sidebar-nav">
+      <button class="sidebar-link" data-tab="today" onclick="showTab('today')">
+        <span class="nav-icon">📅</span> Днес
+      </button>
+      <button class="sidebar-link" data-tab="week" onclick="showTab('week')">
+        <span class="nav-icon">📆</span> Тази седмица
+      </button>
+      <button class="sidebar-link" data-tab="slots" onclick="showTab('slots')">
+        <span class="nav-icon">🕐</span> Часове
+      </button>
+      <button class="sidebar-link" data-tab="profile" onclick="showTab('profile')">
+        <span class="nav-icon">👤</span> Профил
+      </button>
+      <button class="sidebar-link" data-tab="stats" onclick="showTab('stats')">
+        <span class="nav-icon">📊</span> Статистики
+      </button>
+    </div>
+    <div class="sidebar-footer">
+      <button class="btn-logout" onclick="logout()">🚪 Изход</button>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <div class="main-content">
+
+    <!-- TAB: ДНЕС -->
+    <div id="tab-today" class="tab-content">
+      <div class="tab-header">
+        <h2>Днешни резервации</h2>
+        <p>Вашите пациенти за днес</p>
+      </div>
+      <div id="todayList"></div>
+    </div>
+
+    <!-- TAB: ТАЗИ СЕДМИЦА -->
+    <div id="tab-week" class="tab-content">
+      <div class="tab-header">
+        <h2>Резервации за седмицата</h2>
+        <p>Следващите 7 дни</p>
+      </div>
+      <div id="weekList"></div>
+    </div>
+
+    <!-- TAB: ЧАСОВЕ -->
+    <div id="tab-slots" class="tab-content">
+      <div class="tab-header">
+        <h2>Управление на часове</h2>
+        <p>Добавете свободни часове за резервации</p>
+      </div>
+
+      <!-- Add single slot -->
+      <div class="panel-card">
+        <h3>Добави един час</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Дата</label>
+            <input id="newSlotDate" type="date">
+          </div>
+          <div class="form-group">
+            <label>Час</label>
+            <input id="newSlotTime" type="time">
+          </div>
+          <button class="btn-primary" onclick="addSlot()">+ Добави</button>
+        </div>
+      </div>
+
+      <!-- Bulk slots -->
+      <div class="panel-card">
+        <h3>Добави серия часове</h3>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Дата</label>
+            <input id="bulkDate" type="date">
+          </div>
+          <div class="form-group">
+            <label>От час</label>
+            <input id="bulkStart" type="time" value="09:00">
+          </div>
+          <div class="form-group">
+            <label>До час</label>
+            <input id="bulkEnd" type="time" value="17:00">
+          </div>
+          <div class="form-group">
+            <label>Интервал (мин)</label>
+            <input id="bulkInterval" type="number" value="30" min="10" max="120">
+          </div>
+          <button class="btn-primary" onclick="addBulkSlots()">+ Добави серия</button>
+        </div>
+      </div>
+
+      <!-- Slots list -->
+      <div class="panel-card">
+        <h3>Часове</h3>
+        <div id="slotsList"></div>
+      </div>
+    </div>
+
+    <!-- TAB: ПРОФИЛ -->
+    <div id="tab-profile" class="tab-content">
+      <div class="tab-header">
+        <h2>Редактирай профил</h2>
+        <p>Обновете вашата информация видима за пациентите</p>
+      </div>
+      <div class="panel-card">
+        <form onsubmit="saveProfile(event)">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Три имена *</label>
+              <input id="pfName" type="text" required>
+            </div>
+            <div class="form-group">
+              <label>Имейл</label>
+              <input id="pfEmail" type="email" readonly style="background:#f5f7fa">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Специалност *</label>
+              <input id="pfSpec" type="text" required>
+            </div>
+            <div class="form-group">
+              <label>Цена (лв.) *</label>
+              <input id="pfPrice" type="number" min="0" required>
+            </div>
+            <div class="form-group">
+              <label>Продължителност (мин)</label>
+              <input id="pfDuration" type="number" min="10" max="180" value="30">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Описание / За мен</label>
+            <textarea id="pfDescription" rows="4"></textarea>
+          </div>
+          <div class="form-group">
+            <label>Езици (разделени със запетая)</label>
+            <input id="pfLanguages" type="text" placeholder="Български, Английски">
+          </div>
+          <div class="form-group">
+            <label>Снимка (URL)</label>
+            <input id="pfPhoto" type="url" placeholder="https://...">
+          </div>
+          <button type="submit" class="btn-primary" style="width:auto;padding:11px 28px;">💾 Запази промените</button>
+          <div class="save-msg" id="pfSaveMsg"></div>
+        </form>
+      </div>
+    </div>
+
+    <!-- TAB: СТАТИСТИКИ -->
+    <div id="tab-stats" class="tab-content">
+      <div class="tab-header">
+        <h2>Статистики</h2>
+        <p>Обобщена информация за вашата дейност</p>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-val" id="statTotal">–</div>
+          <div class="stat-lbl">Общо резервации</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="statRating">–</div>
+          <div class="stat-lbl">Среден рейтинг ★</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" id="statReviews">–</div>
+          <div class="stat-lbl">Брой отзиви</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── SCRIPTS ──────────────────────────────────────────── -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script src="supabase-config.js"></script>
+<script>
+  let db;
+  let currentDoctor = null;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    db = initSupabase();
+    checkSession();
+  });
+
+  async function checkSession() {
+    const { data: { session } } = await db.auth.getSession();
+    if (session) {
+      await loadDoctorProfile(session.user.email);
+      showPanel();
+    }
+  }
+
+  async function login() {
+    const email    = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const errEl    = document.getElementById('loginError');
+    errEl.textContent = '';
+    const { data, error } = await db.auth.signInWithPassword({ email, password });
+    if (error) {
+      errEl.textContent = 'Грешен имейл или парола';
+      return;
+    }
+    await loadDoctorProfile(data.user.email);
+    showPanel();
+  }
+
+  async function logout() {
+    await db.auth.signOut();
+    location.reload();
+  }
+
+  async function loadDoctorProfile(email) {
+    const { data } = await db.from('doctors').select('*').eq('email', email).single();
+    currentDoctor = data;
+  }
+
+  function showPanel() {
+    document.getElementById('loginPage').style.display = 'none';
+    document.getElementById('panelPage').style.display = 'flex';
+    document.getElementById('doctorNameHeader').textContent = currentDoctor?.name || 'Лекар';
+    showTab('today');
+  }
+
+  function showTab(tab) {
+    document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.sidebar-link').forEach(el => el.classList.remove('active'));
+    document.getElementById('tab-' + tab).style.display = 'block';
+    document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+    if      (tab === 'today')   loadTodayBookings();
+    else if (tab === 'week')    loadWeekBookings();
+    else if (tab === 'slots')   loadSlots();
+    else if (tab === 'profile') loadProfileForm();
+    else if (tab === 'stats')   loadStats();
+  }
+
+  // ── TODAY BOOKINGS ────────────────────────────────────
+  async function loadTodayBookings() {
+    if (!currentDoctor) return;
+    const todayStr = new Date().toISOString().split('T')[0];
+    const { data } = await db.from('bookings')
+      .select('*, time_slots(date, time)')
+      .eq('doctor_id', currentDoctor.id)
+      .order('created_at');
+    const filtered = (data || []).filter(b => b.time_slots?.date === todayStr);
+    renderBookingsList('todayList', filtered);
+  }
+
+  async function loadWeekBookings() {
+    if (!currentDoctor) return;
+    const start = new Date().toISOString().split('T')[0];
+    const endDate = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
+    const { data } = await db.from('bookings')
+      .select('*, time_slots(date, time)')
+      .eq('doctor_id', currentDoctor.id)
+      .order('created_at');
+    const filtered = (data || []).filter(b => {
+      const d = b.time_slots?.date;
+      return d && d >= start && d <= endDate;
+    });
+    renderBookingsList('weekList', filtered);
+  }
+
+  function renderBookingsList(containerId, bookings) {
+    const el = document.getElementById(containerId);
+    if (!bookings.length) {
+      el.innerHTML = '<div class="empty-state">Няма резервации</div>';
+      return;
+    }
+    el.innerHTML = bookings.map(b => `
+      <div class="booking-item">
+        <div class="booking-time">${b.time_slots?.time?.slice(0,5)||'?'} &nbsp;|&nbsp; ${b.time_slots?.date||'?'}</div>
+        <div class="booking-patient"><strong>${escHtml(b.patient_name)}</strong></div>
+        <div class="booking-detail">📞 ${escHtml(b.patient_phone||'–')} &nbsp; ✉ ${escHtml(b.patient_email)}</div>
+        ${b.complaint ? `<div class="booking-complaint">💬 ${escHtml(b.complaint)}</div>` : ''}
+        <div class="booking-actions">
+          <span class="status-badge ${b.status}">${b.status}</span>
+          <button onclick="updateStatus('${b.id}','completed')" class="btn-small btn-green">Завърши</button>
+          <button onclick="updateStatus('${b.id}','cancelled')" class="btn-small btn-red">Откажи</button>
+        </div>
+      </div>`).join('');
+  }
+
+  async function updateStatus(bookingId, status) {
+    await db.from('bookings').update({ status }).eq('id', bookingId);
+    loadTodayBookings();
+    loadWeekBookings();
+  }
+
+  // ── SLOTS MANAGEMENT ──────────────────────────────────
+  async function loadSlots() {
+    if (!currentDoctor) return;
+    const start = new Date().toISOString().split('T')[0];
+    const { data } = await db.from('time_slots')
+      .select('*')
+      .eq('doctor_id', currentDoctor.id)
+      .gte('date', start)
+      .order('date').order('time');
+    const el = document.getElementById('slotsList');
+    if (!data?.length) {
+      el.innerHTML = '<div class="empty-state">Няма добавени часове</div>';
+      return;
+    }
+    const byDate = {};
+    data.forEach(s => { if (!byDate[s.date]) byDate[s.date] = []; byDate[s.date].push(s); });
+    el.innerHTML = Object.entries(byDate).map(([date, slots]) => `
+      <div class="slots-date-group">
+        <div class="slots-date-header">${fmtDateShort(date)}</div>
+        <div class="slots-list">
+          ${slots.map(s => `
+            <div class="slot-pill ${s.is_booked?'booked':s.is_pending?'pending':'free'}">
+              ${s.time.slice(0,5)}
+              ${!s.is_booked
+                ? `<button onclick="deleteSlot('${s.id}')" class="slot-del" title="Изтрий">✕</button>`
+                : '<span class="slot-locked">🔒</span>'
+              }
+            </div>`).join('')}
+        </div>
+      </div>`).join('');
+  }
+
+  async function addSlot() {
+    const date = document.getElementById('newSlotDate').value;
+    const time = document.getElementById('newSlotTime').value;
+    if (!date || !time) { alert('Изберете дата и час'); return; }
+    const { error } = await db.from('time_slots').insert({ doctor_id: currentDoctor.id, date, time });
+    if (error) {
+      alert(error.code === '23505' ? 'Часът вече съществува' : error.message);
+      return;
+    }
+    document.getElementById('newSlotDate').value = '';
+    document.getElementById('newSlotTime').value = '';
+    loadSlots();
+  }
+
+  async function addBulkSlots() {
+    const date     = document.getElementById('bulkDate').value;
+    const start    = document.getElementById('bulkStart').value;
+    const end      = document.getElementById('bulkEnd').value;
+    const interval = parseInt(document.getElementById('bulkInterval').value) || 30;
+    if (!date || !start || !end) { alert('Попълнете всички полета'); return; }
+    const slots = [];
+    let cur = timeToMins(start);
+    const endMins = timeToMins(end);
+    while (cur < endMins) {
+      slots.push({ doctor_id: currentDoctor.id, date, time: minsToTime(cur) + ':00' });
+      cur += interval;
+    }
+    if (!slots.length) { alert('Невалиден диапазон'); return; }
+    const { error } = await db.from('time_slots').upsert(slots, { onConflict: 'doctor_id,date,time' });
+    if (error) { alert(error.message); return; }
+    alert(`Добавени ${slots.length} часа`);
+    loadSlots();
+  }
+
+  async function deleteSlot(id) {
+    if (!confirm('Изтриване на часа?')) return;
+    await db.from('time_slots').delete().eq('id', id);
+    loadSlots();
+  }
+
+  function timeToMins(t) { const [h,m] = t.split(':').map(Number); return h*60+(m||0); }
+  function minsToTime(m) { return `${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`; }
+  function fmtDateShort(d) {
+    return new Date(d+'T00:00:00').toLocaleDateString('bg-BG', { weekday:'long', day:'numeric', month:'long' });
+  }
+
+  // ── PROFILE EDIT ──────────────────────────────────────
+  function loadProfileForm() {
+    if (!currentDoctor) return;
+    document.getElementById('pfName').value       = currentDoctor.name        || '';
+    document.getElementById('pfEmail').value      = currentDoctor.email       || '';
+    document.getElementById('pfSpec').value       = currentDoctor.specialty   || '';
+    document.getElementById('pfPrice').value      = currentDoctor.price       || '';
+    document.getElementById('pfDuration').value   = currentDoctor.duration    || 30;
+    document.getElementById('pfDescription').value= currentDoctor.description || '';
+    document.getElementById('pfLanguages').value  = (currentDoctor.languages||[]).join(', ');
+    document.getElementById('pfPhoto').value      = currentDoctor.photo_url   || '';
+  }
+
+  async function saveProfile(e) {
+    e.preventDefault();
+    const updates = {
+      name:        document.getElementById('pfName').value.trim(),
+      specialty:   document.getElementById('pfSpec').value.trim(),
+      price:       parseInt(document.getElementById('pfPrice').value),
+      duration:    parseInt(document.getElementById('pfDuration').value),
+      description: document.getElementById('pfDescription').value.trim(),
+      languages:   document.getElementById('pfLanguages').value.split(',').map(l=>l.trim()).filter(Boolean),
+      photo_url:   document.getElementById('pfPhoto').value.trim() || null,
+    };
+    const { error } = await db.from('doctors').update(updates).eq('id', currentDoctor.id);
+    if (error) { alert('Грешка: ' + error.message); return; }
+    Object.assign(currentDoctor, updates);
+    document.getElementById('doctorNameHeader').textContent = currentDoctor.name;
+    const msg = document.getElementById('pfSaveMsg');
+    msg.textContent = '✓ Запазено успешно!';
+    setTimeout(() => { msg.textContent = ''; }, 3000);
+  }
+
+  // ── STATS ─────────────────────────────────────────────
+  async function loadStats() {
+    if (!currentDoctor) return;
+    const [{ count: totalBookings }, { data: ratings }] = await Promise.all([
+      db.from('bookings').select('*', { count: 'exact', head: true }).eq('doctor_id', currentDoctor.id),
+      db.from('reviews').select('rating').eq('doctor_id', currentDoctor.id)
+    ]);
+    const avgRating = ratings?.length
+      ? (ratings.reduce((s,r) => s + r.rating, 0) / ratings.length).toFixed(1)
+      : '–';
+    document.getElementById('statTotal').textContent   = totalBookings  || 0;
+    document.getElementById('statRating').textContent  = avgRating;
+    document.getElementById('statReviews').textContent = ratings?.length || 0;
+  }
+
+  // ── HELPERS ───────────────────────────────────────────
+  function escHtml(str) {
+    return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+</script>
+</body>
+</html>

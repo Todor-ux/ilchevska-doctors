@@ -1,0 +1,1244 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ilchevska Pharmacy – Медицинска Платформа</title>
+  <style>
+    :root {
+      --primary: #0d2d4e;
+      --primary-dark: #091f36;
+      --primary-light: #1a4570;
+      --accent: #2a9d5c;
+      --accent-dark: #1e7a45;
+      --accent-light: #3db870;
+      --bg: #f0f4f8;
+      --card-bg: #ffffff;
+      --text: #1a2636;
+      --text-light: #4a5568;
+      --muted: #8a9ab0;
+      --border: #dde4ec;
+      --shadow: 0 2px 12px rgba(13,45,78,0.10);
+      --shadow-hover: 0 8px 28px rgba(13,45,78,0.18);
+      --radius: 14px;
+      --radius-sm: 8px;
+      --transition: 0.22s ease;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* ── HEADER ─────────────────────────────────────── */
+    header {
+      background: var(--primary);
+      color: #fff;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.18);
+    }
+    .header-inner {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 20px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .logo {
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: #fff;
+      white-space: nowrap;
+    }
+    .logo .logo-sub { font-size: 0.72rem; font-weight: 400; opacity: 0.75; display: block; }
+    nav { display: flex; align-items: center; gap: 8px; }
+    nav a {
+      color: rgba(255,255,255,0.82);
+      text-decoration: none;
+      font-size: 0.88rem;
+      padding: 6px 14px;
+      border-radius: 20px;
+      transition: var(--transition);
+    }
+    nav a:hover { background: rgba(255,255,255,0.12); color: #fff; }
+
+    /* ── HERO ────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 60%, var(--accent) 100%);
+      color: #fff;
+      padding: 64px 20px 52px;
+      text-align: center;
+    }
+    .hero h1 { font-size: clamp(1.6rem, 3.5vw, 2.6rem); font-weight: 800; margin-bottom: 12px; }
+    .hero p { font-size: 1.05rem; opacity: 0.88; margin-bottom: 32px; }
+    .search-wrap {
+      display: flex;
+      max-width: 560px;
+      margin: 0 auto;
+      background: #fff;
+      border-radius: 50px;
+      overflow: hidden;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.15);
+    }
+    #searchInput {
+      flex: 1;
+      border: none;
+      outline: none;
+      padding: 14px 22px;
+      font-size: 1rem;
+      color: var(--text);
+      background: transparent;
+    }
+    .search-btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 0 28px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .search-btn:hover { background: var(--accent-dark); }
+
+    /* ── STATS BAR ───────────────────────────────────── */
+    .stats-bar {
+      background: var(--primary-dark);
+      color: #fff;
+      padding: 18px 20px;
+    }
+    .stats-inner {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: center;
+      gap: 48px;
+      flex-wrap: wrap;
+    }
+    .stat-item { text-align: center; }
+    .stat-value { font-size: 1.5rem; font-weight: 800; color: var(--accent-light); }
+    .stat-label { font-size: 0.78rem; opacity: 0.75; margin-top: 2px; }
+
+    /* ── FILTERS ─────────────────────────────────────── */
+    .filters-bar {
+      background: var(--card-bg);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 20px;
+      position: sticky;
+      top: 64px;
+      z-index: 90;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .filters-inner {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .filters-inner select,
+    .filters-inner input[type="number"] {
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 7px 11px;
+      font-size: 0.85rem;
+      color: var(--text);
+      background: var(--bg);
+      outline: none;
+      transition: border-color var(--transition);
+      cursor: pointer;
+    }
+    .filters-inner select:focus,
+    .filters-inner input[type="number"]:focus { border-color: var(--accent); }
+    .filters-inner input[type="number"] { width: 90px; }
+    .filter-label { font-size: 0.78rem; color: var(--muted); white-space: nowrap; }
+    .btn-reset {
+      background: transparent;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 7px 14px;
+      font-size: 0.82rem;
+      color: var(--text-light);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .btn-reset:hover { border-color: var(--accent); color: var(--accent); }
+    #resultsCount {
+      margin-left: auto;
+      font-size: 0.82rem;
+      color: var(--muted);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    /* ── MAIN CONTENT ────────────────────────────────── */
+    .main-content { max-width: 1280px; margin: 0 auto; padding: 32px 20px 60px; }
+
+    /* ── LOADING ─────────────────────────────────────── */
+    #loadingState {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 20px;
+      gap: 18px;
+    }
+    .spinner {
+      width: 48px; height: 48px;
+      border: 4px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── DOCTORS GRID ────────────────────────────────── */
+    .doctors-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 22px;
+    }
+    @media (max-width: 1100px) { .doctors-grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 780px)  { .doctors-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 520px)  { .doctors-grid { grid-template-columns: 1fr; } }
+
+    .doc-card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      transition: transform var(--transition), box-shadow var(--transition);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+    }
+    .doc-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); }
+
+    .card-top {
+      background: linear-gradient(160deg, var(--primary) 0%, var(--primary-light) 100%);
+      color: #fff;
+      padding: 22px 16px 18px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: relative;
+    }
+    .avail-dot {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.7);
+    }
+    .avail-dot.online  { background: #4ade80; }
+    .avail-dot.offline { background: #94a3b8; }
+    .avatar { flex-shrink: 0; }
+    .card-name { font-size: 1rem; font-weight: 700; margin-top: 10px; line-height: 1.3; }
+    .card-spec {
+      display: inline-block;
+      margin-top: 5px;
+      background: rgba(255,255,255,0.18);
+      border-radius: 20px;
+      padding: 3px 11px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+    }
+    .card-body { padding: 14px 16px; flex: 1; }
+    .stars { font-size: 0.82rem; color: #f59e0b; display: flex; align-items: center; gap: 5px; margin-bottom: 7px; }
+    .stars span { color: var(--text-light); font-size: 0.78rem; }
+    .card-price { font-size: 1.05rem; font-weight: 700; color: var(--primary); margin-bottom: 8px; }
+    .card-price small { font-size: 0.75rem; font-weight: 400; color: var(--muted); }
+    .next-slot { font-size: 0.78rem; color: var(--text-light); }
+    .next-slot span { font-weight: 600; }
+    .card-footer { padding: 0 16px 16px; }
+    .btn-view {
+      display: block;
+      width: 100%;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 10px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background var(--transition);
+    }
+    .btn-view:hover { background: var(--accent-dark); }
+
+    .no-results {
+      grid-column: 1/-1;
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+    }
+    .no-results h3 { font-size: 1.2rem; margin-bottom: 8px; color: var(--text-light); }
+    .no-results button {
+      margin-top: 14px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 10px 24px;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+
+    /* ── MODAL OVERLAY ───────────────────────────────── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(9,31,54,0.7);
+      z-index: 200;
+      overflow-y: auto;
+      padding: 20px;
+      backdrop-filter: blur(4px);
+    }
+    .modal-overlay.show { display: flex; align-items: flex-start; justify-content: center; }
+    .modal-box {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      width: 100%;
+      max-width: 960px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      animation: modalIn 0.28s ease;
+      margin: auto;
+    }
+    @keyframes modalIn { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+    .modal-close {
+      position: absolute;
+      top: 14px;
+      right: 16px;
+      background: rgba(255,255,255,0.15);
+      border: none;
+      color: #fff;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      font-size: 1.2rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background var(--transition);
+      z-index: 10;
+    }
+    .modal-close:hover { background: rgba(255,255,255,0.28); }
+
+    /* Doctor modal header */
+    .modal-header {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+      color: #fff;
+      padding: 28px 24px 22px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .modal-header-info { flex: 1; }
+    .modal-header-info h2 { font-size: 1.4rem; font-weight: 800; margin-bottom: 5px; }
+    #mSpec .spec-badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.18);
+      border-radius: 20px;
+      padding: 4px 14px;
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+    #mStars { font-size: 0.88rem; color: #fbbf24; display: flex; align-items: center; gap: 6px; margin-top: 7px; }
+    #mStars span { color: rgba(255,255,255,0.8); font-size: 0.82rem; }
+    #mMeta { display: flex; gap: 16px; margin-top: 8px; font-size: 0.8rem; opacity: 0.85; flex-wrap: wrap; }
+
+    /* Modal body */
+    .modal-body { display: grid; grid-template-columns: 1fr 340px; min-height: 500px; }
+    @media (max-width: 700px) { .modal-body { grid-template-columns: 1fr; } }
+
+    .modal-left { padding: 24px; overflow-y: auto; border-right: 1px solid var(--border); }
+    .modal-section { margin-bottom: 24px; }
+    .modal-section h4 {
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--muted);
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+    .modal-section p { font-size: 0.92rem; color: var(--text-light); line-height: 1.65; }
+
+    .cv-item { display: flex; gap: 12px; margin-bottom: 10px; }
+    .cv-year { font-size: 0.75rem; font-weight: 700; color: var(--accent); white-space: nowrap; min-width: 48px; padding-top: 2px; }
+    .cv-text strong { display: block; font-size: 0.9rem; }
+    .cv-text span { font-size: 0.8rem; color: var(--muted); }
+
+    .tag {
+      display: inline-block;
+      background: #edf7f2;
+      color: var(--accent-dark);
+      border-radius: 20px;
+      padding: 4px 11px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      margin: 3px 3px 3px 0;
+    }
+    .lang-item { font-size: 0.88rem; color: var(--text-light); margin-bottom: 5px; }
+
+    .review {
+      background: var(--bg);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      margin-bottom: 10px;
+    }
+    .review-top { display: flex; justify-content: space-between; margin-bottom: 4px; }
+    .reviewer { font-weight: 700; font-size: 0.88rem; }
+    .review-date { font-size: 0.75rem; color: var(--muted); }
+    .review .stars { font-size: 0.82rem; color: #f59e0b; margin-bottom: 5px; }
+    .review-text { font-size: 0.85rem; color: var(--text-light); line-height: 1.55; }
+
+    /* Booking right column */
+    .modal-right { padding: 20px; background: #fafcff; overflow-y: auto; }
+    .booking-card-title { font-size: 0.98rem; font-weight: 700; color: var(--primary); margin-bottom: 4px; }
+    #bkPrice { font-size: 1.5rem; font-weight: 800; color: var(--accent); display: block; margin-bottom: 2px; }
+    #bkDuration { font-size: 0.8rem; color: var(--muted); margin-bottom: 16px; display: block; }
+
+    /* Calendar */
+    .cal-wrap { margin-bottom: 16px; }
+    .cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    #calTitle { font-size: 0.92rem; font-weight: 700; color: var(--primary); }
+    .cal-nav-btn {
+      background: transparent;
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      width: 30px;
+      height: 30px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      color: var(--text-light);
+      transition: var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .cal-nav-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    #calGrid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 3px;
+    }
+    .cal-day {
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      transition: var(--transition);
+      cursor: default;
+    }
+    .cal-day.hdr { font-weight: 700; font-size: 0.7rem; color: var(--muted); aspect-ratio: auto; padding: 3px 0; }
+    .cal-day.empty { background: transparent; }
+    .cal-day.unavail { color: var(--muted); }
+    .cal-day.avail { background: #edf7f2; color: var(--accent-dark); font-weight: 700; cursor: pointer; }
+    .cal-day.avail:hover { background: var(--accent); color: #fff; }
+    .cal-day.selected { background: var(--accent) !important; color: #fff !important; font-weight: 700; }
+    .cal-day.today { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+    /* Time slots */
+    #timeSlotsWrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-bottom: 14px;
+      min-height: 36px;
+    }
+    .time-slot {
+      background: #edf7f2;
+      color: var(--accent-dark);
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: var(--transition);
+      border: 1.5px solid transparent;
+    }
+    .time-slot:hover { background: var(--accent); color: #fff; }
+    .time-slot.selected { background: var(--accent); color: #fff; border-color: var(--accent-dark); }
+
+    /* Booking form */
+    #bookingFormWrap {
+      display: none;
+      border-top: 1px solid var(--border);
+      padding-top: 14px;
+    }
+    .bk-form-title { font-size: 0.88rem; font-weight: 700; color: var(--primary); margin-bottom: 12px; }
+    #pendingTimer { font-size: 0.82rem; font-weight: 700; color: #e67e22; margin-bottom: 10px; min-height: 20px; }
+
+    .form-group { margin-bottom: 10px; }
+    .form-group label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-light); margin-bottom: 4px; }
+    .form-group input,
+    .form-group textarea {
+      width: 100%;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 8px 11px;
+      font-size: 0.88rem;
+      color: var(--text);
+      outline: none;
+      transition: border-color var(--transition);
+      background: #fff;
+      font-family: inherit;
+    }
+    .form-group input:focus,
+    .form-group textarea:focus { border-color: var(--accent); }
+    .form-group textarea { height: 70px; resize: vertical; }
+    .btn-submit {
+      width: 100%;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background var(--transition);
+      margin-top: 4px;
+    }
+    .btn-submit:hover { background: var(--accent-dark); }
+    .btn-submit:disabled { background: var(--muted); cursor: not-allowed; }
+
+    /* Success modal */
+    .success-box {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      max-width: 460px;
+      width: 100%;
+      padding: 48px 36px;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+      animation: modalIn 0.3s ease;
+      margin: auto;
+    }
+    .success-icon {
+      width: 72px; height: 72px;
+      background: #edf7f2;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      margin: 0 auto 20px;
+    }
+    .success-box h2 { font-size: 1.4rem; color: var(--accent); margin-bottom: 12px; }
+    #successMsg { font-size: 0.95rem; color: var(--text-light); line-height: 1.7; }
+    .btn-success-close {
+      margin-top: 24px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 12px 36px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background var(--transition);
+    }
+    .btn-success-close:hover { background: var(--accent-dark); }
+
+    /* ── FOOTER ──────────────────────────────────────── */
+    footer {
+      background: var(--primary-dark);
+      color: rgba(255,255,255,0.8);
+      padding: 36px 20px;
+      text-align: center;
+    }
+    footer .footer-inner { max-width: 700px; margin: 0 auto; }
+    footer h3 { color: #fff; font-size: 1.1rem; margin-bottom: 12px; }
+    footer p { font-size: 0.88rem; line-height: 1.8; }
+    footer a { color: var(--accent-light); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+    .footer-divider { border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 20px 0; }
+    .footer-copy { font-size: 0.78rem; opacity: 0.55; }
+
+    /* ── RESPONSIVE ─────────────────────────────────── */
+    @media (max-width: 600px) {
+      .filters-inner { gap: 6px; }
+      .filters-inner select,
+      .filters-inner input[type="number"] { font-size: 0.78rem; padding: 6px 8px; }
+      .modal-body { grid-template-columns: 1fr; }
+      .modal-left { border-right: none; border-bottom: 1px solid var(--border); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── HEADER ──────────────────────────────────────────────── -->
+<header>
+  <div class="header-inner">
+    <a class="logo" href="#" onclick="window.scrollTo({top:0,behavior:'smooth'});return false;">
+      💊 Ilchevska Pharmacy
+      <span class="logo-sub">МЕДИЦИНСКА ПЛАТФОРМА</span>
+    </a>
+    <nav>
+      <a href="#doctors-section">Специалисти</a>
+      <a href="doctor-panel.html">Лекарски панел</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ── HERO ────────────────────────────────────────────────── -->
+<section class="hero">
+  <h1>Намерете вашия специалист</h1>
+  <p>Онлайн резервация с потвърждение на имейл – бързо, лесно, сигурно</p>
+  <div class="search-wrap">
+    <input id="searchInput" type="text" placeholder="Търсете по специалност, лекар или ключова дума..." oninput="applyFilters()">
+    <button class="search-btn" onclick="applyFilters()">Търси</button>
+  </div>
+</section>
+
+<!-- ── STATS BAR ────────────────────────────────────────────── -->
+<div class="stats-bar">
+  <div class="stats-inner">
+    <div class="stat-item"><div class="stat-value">20+</div><div class="stat-label">Специалисти</div></div>
+    <div class="stat-item"><div class="stat-value">500+</div><div class="stat-label">Консултации</div></div>
+    <div class="stat-item"><div class="stat-value">4.8★</div><div class="stat-label">Средна оценка</div></div>
+    <div class="stat-item"><div class="stat-value">98%</div><div class="stat-label">Доволни пациенти</div></div>
+  </div>
+</div>
+
+<!-- ── FILTERS BAR ──────────────────────────────────────────── -->
+<div class="filters-bar" id="doctors-section">
+  <div class="filters-inner">
+    <span class="filter-label">Специалност:</span>
+    <select id="fSpec" onchange="applyFilters()">
+      <option value="">Всички</option>
+      <option>Кардиолог</option>
+      <option>Дерматолог</option>
+      <option>Педиатър</option>
+      <option>Невролог</option>
+      <option>Ортопед</option>
+      <option>Гинеколог</option>
+      <option>Офталмолог</option>
+      <option>Психолог</option>
+      <option>Диетолог</option>
+      <option>Фармацевт</option>
+      <option>Уролог</option>
+      <option>Ендокринолог</option>
+      <option>Пулмолог</option>
+      <option>Гастроентеролог</option>
+      <option>Хирург</option>
+      <option>Ревматолог</option>
+      <option>Нефролог</option>
+      <option>Онколог</option>
+      <option>Алерголог</option>
+      <option>Имунолог</option>
+    </select>
+
+    <span class="filter-label">Цена от:</span>
+    <input type="number" id="fPriceMin" placeholder="0" min="0" oninput="applyFilters()">
+    <span class="filter-label">до:</span>
+    <input type="number" id="fPriceMax" placeholder="∞" min="0" oninput="applyFilters()">
+
+    <span class="filter-label">Наличност:</span>
+    <select id="fAvail" onchange="applyFilters()">
+      <option value="">Всички</option>
+      <option value="today">Днес</option>
+      <option value="week">Тази седмица</option>
+    </select>
+
+    <span class="filter-label">Мин. рейтинг:</span>
+    <select id="fRating" onchange="applyFilters()">
+      <option value="0">Всички</option>
+      <option value="3">3+</option>
+      <option value="4">4+</option>
+      <option value="4.5">4.5+</option>
+    </select>
+
+    <span class="filter-label">Сортирай:</span>
+    <select id="fSort" onchange="applyFilters()">
+      <option value="rating">Рейтинг</option>
+      <option value="price_asc">Цена ↑</option>
+      <option value="price_desc">Цена ↓</option>
+      <option value="avail">Наличност</option>
+    </select>
+
+    <button class="btn-reset" onclick="resetFilters()">↺ Нулирай</button>
+    <div id="resultsCount"></div>
+  </div>
+</div>
+
+<!-- ── DOCTORS GRID ─────────────────────────────────────────── -->
+<div class="main-content">
+  <div id="loadingState">
+    <div class="spinner"></div>
+    <p style="color:var(--muted)">Зареждане на специалисти...</p>
+  </div>
+  <div id="doctorsGrid" class="doctors-grid" style="display:none"></div>
+</div>
+
+<!-- ── DOCTOR MODAL ─────────────────────────────────────────── -->
+<div id="doctorModal" class="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+
+    <!-- Modal Header -->
+    <div class="modal-header">
+      <div id="mAvatar"></div>
+      <div class="modal-header-info">
+        <h2 id="mName"></h2>
+        <div id="mSpec"></div>
+        <div id="mStars"></div>
+        <div id="mMeta"></div>
+      </div>
+    </div>
+
+    <!-- Modal Body -->
+    <div class="modal-body">
+      <!-- Left: Info -->
+      <div class="modal-left">
+        <div class="modal-section">
+          <h4>За специалиста</h4>
+          <p id="mAbout"></p>
+        </div>
+        <div class="modal-section">
+          <h4>Образование и опит</h4>
+          <div id="mEducation"></div>
+        </div>
+        <div class="modal-section">
+          <h4>Специализации</h4>
+          <div id="mTags"></div>
+        </div>
+        <div class="modal-section">
+          <h4>Говори на</h4>
+          <div id="mLangs"></div>
+        </div>
+        <div class="modal-section">
+          <h4>Отзиви на пациенти</h4>
+          <div id="mReviews"></div>
+        </div>
+      </div>
+
+      <!-- Right: Booking -->
+      <div class="modal-right">
+        <div class="booking-card-title">Запазете час</div>
+        <span id="bkPrice"></span>
+        <span id="bkDuration"></span>
+
+        <!-- Calendar -->
+        <div class="cal-wrap">
+          <div class="cal-nav">
+            <button class="cal-nav-btn" onclick="prevMonth()">&#8249;</button>
+            <span id="calTitle"></span>
+            <button class="cal-nav-btn" onclick="nextMonth()">&#8250;</button>
+          </div>
+          <div id="calGrid"></div>
+        </div>
+
+        <!-- Time Slots -->
+        <div style="font-size:0.8rem;font-weight:700;color:var(--primary);margin-bottom:8px;">Свободни часове</div>
+        <div id="timeSlotsWrap"></div>
+
+        <!-- Booking Form -->
+        <div id="bookingFormWrap">
+          <div class="bk-form-title">Вашите данни</div>
+          <div id="pendingTimer"></div>
+          <form onsubmit="submitBooking(event)">
+            <div class="form-group">
+              <label>Три имена *</label>
+              <input id="bName" type="text" required placeholder="Иван Иванов Петров">
+            </div>
+            <div class="form-group">
+              <label>Имейл *</label>
+              <input id="bEmail" type="email" required placeholder="ivan@example.com">
+            </div>
+            <div class="form-group">
+              <label>Телефон</label>
+              <input id="bPhone" type="tel" placeholder="+359 88 888 8888">
+            </div>
+            <div class="form-group">
+              <label>Оплакване / причина за консултация</label>
+              <textarea id="bComplaint" placeholder="Опишете накратко вашия проблем..."></textarea>
+            </div>
+            <button type="submit" class="btn-submit">Потвърди резервацията</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── SUCCESS MODAL ────────────────────────────────────────── -->
+<div id="successModal" class="modal-overlay" onclick="if(event.target===this)closeSuccess()">
+  <div class="success-box">
+    <div class="success-icon">✅</div>
+    <h2>Резервацията е успешна!</h2>
+    <p id="successMsg"></p>
+    <button class="btn-success-close" onclick="closeSuccess()">Затвори</button>
+  </div>
+</div>
+
+<!-- ── FOOTER ───────────────────────────────────────────────── -->
+<footer>
+  <div class="footer-inner">
+    <h3>💊 Ilchevska Pharmacy</h3>
+    <p>
+      📍 ул. Тракия 18, кв. Устово, Смолян<br>
+      📞 <a href="tel:030180836">0301 808 36</a><br>
+      ✉ <a href="mailto:todor@ilchevska.bg">todor@ilchevska.bg</a>
+    </p>
+    <hr class="footer-divider">
+    <p class="footer-copy">&copy; 2025 Ilchevska Pharmacy. Всички права запазени.</p>
+  </div>
+</footer>
+
+<!-- ── SCRIPTS ──────────────────────────────────────────────── -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script src="supabase-config.js"></script>
+<script>
+  let db;
+  let allDoctors = [];
+  let nextSlots = {};
+  let currentDoctor = null;
+  let currentMonthSlots = {};
+  let selectedDate = null;
+  let selectedSlot = null;
+  let pendingTimerInterval = null;
+  let pendingExpiry = null;
+  let calYear, calMonth;
+
+  const MONTHS_BG = ['Януари','Февруари','Март','Април','Май','Юни','Юли','Август','Септември','Октомври','Ноември','Декември'];
+  const DAYS_BG = ['Нед','Пон','Вт','Ср','Чет','Пет','Съб'];
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    db = initSupabase();
+    emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+    await loadDoctors();
+  });
+
+  // ── LOAD DOCTORS ──────────────────────────────────────
+  async function loadDoctors() {
+    document.getElementById('loadingState').style.display = 'flex';
+    document.getElementById('doctorsGrid').style.display = 'none';
+    try {
+      const [{ data: doctors, error }, { data: slots }] = await Promise.all([
+        db.from('doctors').select('*').eq('is_available', true).order('rating', { ascending: false }),
+        db.from('time_slots')
+          .select('doctor_id, date, time')
+          .eq('is_booked', false)
+          .eq('is_pending', false)
+          .gte('date', today())
+          .order('date').order('time')
+      ]);
+      if (error) throw error;
+      allDoctors = doctors || [];
+      nextSlots = {};
+      (slots || []).forEach(s => { if (!nextSlots[s.doctor_id]) nextSlots[s.doctor_id] = s; });
+      applyFilters();
+    } catch(e) {
+      document.getElementById('doctorsGrid').innerHTML = `<div class="no-results"><h3>Грешка при зареждане</h3><p>${e.message}</p><button onclick="loadDoctors()">Опитай пак</button></div>`;
+      document.getElementById('doctorsGrid').style.display = 'grid';
+    } finally {
+      document.getElementById('loadingState').style.display = 'none';
+      document.getElementById('doctorsGrid').style.display = 'grid';
+    }
+  }
+
+  // ── FILTER + SORT ─────────────────────────────────────
+  function applyFilters() {
+    const q      = (document.getElementById('searchInput').value || '').toLowerCase();
+    const spec   = document.getElementById('fSpec').value;
+    const pMin   = parseFloat(document.getElementById('fPriceMin').value) || 0;
+    const pMax   = parseFloat(document.getElementById('fPriceMax').value) || Infinity;
+    const avail  = document.getElementById('fAvail').value;
+    const minR   = parseFloat(document.getElementById('fRating').value) || 0;
+    const sort   = document.getElementById('fSort').value;
+
+    let list = allDoctors.filter(d => {
+      if (q && !d.name.toLowerCase().includes(q) && !d.specialty.toLowerCase().includes(q) &&
+          !(d.tags||[]).some(t => t.toLowerCase().includes(q)) &&
+          !(d.description||'').toLowerCase().includes(q)) return false;
+      if (spec && d.specialty !== spec) return false;
+      if (d.price < pMin || d.price > pMax) return false;
+      if (avail === 'today' && nextSlots[d.id]?.date !== today()) return false;
+      if (avail === 'week') {
+        const ns = nextSlots[d.id];
+        if (!ns) return false;
+        const diff = (new Date(ns.date) - new Date(today())) / 86400000;
+        if (diff > 7) return false;
+      }
+      if ((d.rating||0) < minR) return false;
+      return true;
+    });
+
+    if (sort === 'rating')       list.sort((a,b) => (b.rating||0) - (a.rating||0));
+    else if (sort === 'price_asc')  list.sort((a,b) => a.price - b.price);
+    else if (sort === 'price_desc') list.sort((a,b) => b.price - a.price);
+    else if (sort === 'avail') {
+      list.sort((a,b) => {
+        const da  = nextSlots[a.id]?.date || '9999';
+        const db2 = nextSlots[b.id]?.date || '9999';
+        return da.localeCompare(db2);
+      });
+    }
+    renderGrid(list);
+  }
+
+  function resetFilters() {
+    ['searchInput','fPriceMin','fPriceMax'].forEach(id => document.getElementById(id).value = '');
+    ['fSpec','fAvail'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('fRating').value = '0';
+    document.getElementById('fSort').value = 'rating';
+    applyFilters();
+  }
+
+  // ── RENDER GRID ───────────────────────────────────────
+  function renderGrid(list) {
+    const grid = document.getElementById('doctorsGrid');
+    document.getElementById('resultsCount').textContent = list.length + ' специалисти';
+    if (!list.length) {
+      grid.innerHTML = '<div class="no-results"><h3>Няма намерени специалисти</h3><p>Опитайте с по-широки критерии.</p></div>';
+      return;
+    }
+    grid.innerHTML = list.map(d => {
+      const slot = nextSlots[d.id];
+      const isToday = slot?.date === today();
+      const nextText = slot
+        ? (isToday ? 'Днес, ' + slot.time.slice(0,5) : fmtDate(slot.date) + ' ' + slot.time.slice(0,5))
+        : 'Без свободни часове';
+      return `<div class="doc-card" onclick="openModal('${d.id}')">
+        <div class="card-top">
+          <div class="avail-dot ${isToday?'online':'offline'}" title="${isToday?'Наличен днес':'Не е наличен днес'}"></div>
+          ${avatarEl(d, 76)}
+          <div class="card-name">${escHtml(d.name)}</div>
+          <span class="card-spec">${escHtml(d.specialty)}</span>
+        </div>
+        <div class="card-body">
+          <div class="stars">${starsHTML(d.rating)}<span>${(d.rating||0).toFixed(1)} (${d.reviews_count||0} отзива)</span></div>
+          <div class="card-price">${d.price} лв. <small>/ консултация</small></div>
+          <div class="next-slot">🕐 <span>Следващ час:</span> ${nextText}</div>
+        </div>
+        <div class="card-footer"><button class="btn-view">Резервирай час</button></div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── DOCTOR MODAL ──────────────────────────────────────
+  async function openModal(doctorId) {
+    currentDoctor = allDoctors.find(d => d.id === doctorId);
+    if (!currentDoctor) return;
+    selectedDate = null; selectedSlot = null; currentMonthSlots = {};
+    clearPending();
+    populateModalInfo();
+    await loadReviews(doctorId);
+    const now = new Date(); calYear = now.getFullYear(); calMonth = now.getMonth();
+    await loadMonthSlots();
+    renderCal();
+    resetBookingForm();
+    document.getElementById('doctorModal').classList.add('show');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeModal() {
+    document.getElementById('doctorModal').classList.remove('show');
+    document.body.style.overflow = '';
+    clearPending();
+  }
+
+  function populateModalInfo() {
+    const d = currentDoctor;
+    document.getElementById('mAvatar').innerHTML = avatarEl(d, 100);
+    document.getElementById('mName').textContent = d.name;
+    document.getElementById('mSpec').innerHTML = `<span class="spec-badge">${escHtml(d.specialty)}</span>`;
+    document.getElementById('mStars').innerHTML = starsHTML(d.rating) + ` <span>${(d.rating||0).toFixed(1)}/5 (${d.reviews_count||0} отзива)</span>`;
+    document.getElementById('mMeta').innerHTML = `
+      <span>🏥 ${d.experience||0} г. опит</span>
+      <span>⏱ ${d.duration||30} мин.</span>
+      <span>${nextSlots[d.id] ? '🟢 Свободни часове' : '🔴 Без часове'}</span>`;
+    document.getElementById('mAbout').textContent = d.description || 'Няма въведена информация.';
+    const edu = d.education || [];
+    document.getElementById('mEducation').innerHTML = (Array.isArray(edu) ? edu : []).map(e =>
+      `<div class="cv-item">
+        <div class="cv-year">${escHtml(String(e.year||''))}</div>
+        <div class="cv-text"><strong>${escHtml(e.title||'')}</strong><span>${escHtml(e.sub||'')}</span></div>
+      </div>`
+    ).join('') || '<p style="color:var(--muted)">Не е въведено</p>';
+    document.getElementById('mTags').innerHTML = (d.tags||[]).map(t=>`<span class="tag">${escHtml(t)}</span>`).join('') || '<p style="color:var(--muted)">Не е въведено</p>';
+    document.getElementById('mLangs').innerHTML = (d.languages||[]).map(l=>`<div class="lang-item">🗣 ${escHtml(l)}</div>`).join('') || '<p style="color:var(--muted)">Не е въведено</p>';
+    document.getElementById('bkPrice').textContent = d.price + ' лв.';
+    document.getElementById('bkDuration').textContent = 'Продължителност: ' + (d.duration||30) + ' мин.';
+  }
+
+  async function loadReviews(doctorId) {
+    const { data } = await db.from('reviews').select('*').eq('doctor_id', doctorId).order('created_at', { ascending: false }).limit(5);
+    const el = document.getElementById('mReviews');
+    if (!data || !data.length) { el.innerHTML = '<p style="color:var(--muted)">Все още няма отзиви.</p>'; return; }
+    el.innerHTML = data.map(r => `<div class="review">
+      <div class="review-top">
+        <span class="reviewer">${escHtml(r.patient_name)}</span>
+        <span class="review-date">${fmtDate(r.created_at?.split('T')[0])}</span>
+      </div>
+      <div class="stars">${'★'.repeat(r.rating||0)}${'☆'.repeat(5-(r.rating||0))}</div>
+      <p class="review-text">${escHtml(r.comment||'')}</p>
+    </div>`).join('');
+  }
+
+  // ── CALENDAR ──────────────────────────────────────────
+  async function loadMonthSlots() {
+    const y = calYear, m = calMonth;
+    const start = `${y}-${pad(m+1)}-01`;
+    const end = new Date(y, m+1, 0).toISOString().split('T')[0];
+    const { data } = await db.from('time_slots')
+      .select('id, date, time, is_booked, is_pending, pending_until')
+      .eq('doctor_id', currentDoctor.id)
+      .gte('date', start)
+      .lte('date', end);
+    const now = new Date();
+    currentMonthSlots = {};
+    (data||[]).forEach(s => {
+      if (s.is_booked) return;
+      if (s.is_pending && new Date(s.pending_until) > now) return;
+      if (!currentMonthSlots[s.date]) currentMonthSlots[s.date] = [];
+      currentMonthSlots[s.date].push(s);
+    });
+  }
+
+  function renderCal() {
+    document.getElementById('calTitle').textContent = MONTHS_BG[calMonth] + ' ' + calYear;
+    const first = new Date(calYear, calMonth, 1);
+    const last  = new Date(calYear, calMonth+1, 0);
+    const todayStr = today();
+    let html = DAYS_BG.map(d => `<div class="cal-day hdr">${d}</div>`).join('');
+    for (let i = 0; i < first.getDay(); i++) html += '<div class="cal-day empty"></div>';
+    for (let i = 1; i <= last.getDate(); i++) {
+      const dateStr = `${calYear}-${pad(calMonth+1)}-${pad(i)}`;
+      const isPast    = dateStr < todayStr;
+      const hasSlots  = !isPast && currentMonthSlots[dateStr]?.length > 0;
+      const isSelected = dateStr === selectedDate;
+      const isToday2  = dateStr === todayStr;
+      let cls = 'cal-day';
+      if (isSelected) cls += ' selected';
+      else if (hasSlots) cls += ' avail';
+      else cls += ' unavail';
+      if (isToday2) cls += ' today';
+      const click = hasSlots ? `onclick="selectCalDate('${dateStr}')"` : '';
+      html += `<div class="${cls}" ${click}>${i}</div>`;
+    }
+    document.getElementById('calGrid').innerHTML = html;
+    renderTimeSlots();
+  }
+
+  function selectCalDate(dateStr) {
+    if (selectedSlot) clearPending();
+    selectedDate = dateStr;
+    selectedSlot = null;
+    renderCal();
+  }
+
+  function renderTimeSlots() {
+    const el = document.getElementById('timeSlotsWrap');
+    if (!selectedDate) {
+      el.innerHTML = '<p style="font-size:.82rem;color:var(--muted)">Изберете дата от календара.</p>';
+      return;
+    }
+    const slots = currentMonthSlots[selectedDate] || [];
+    if (!slots.length) {
+      el.innerHTML = '<p style="font-size:.82rem;color:var(--muted)">Няма свободни часове за тази дата.</p>';
+      return;
+    }
+    el.innerHTML = slots.map(s => {
+      const isSel = selectedSlot?.id === s.id;
+      return `<div class="time-slot${isSel?' selected':''}" onclick="selectTimeSlot('${s.id}','${s.time}')">${s.time.slice(0,5)}</div>`;
+    }).join('');
+  }
+
+  async function selectTimeSlot(slotId, slotTime) {
+    if (selectedSlot) clearPending();
+    const { data: ok, error } = await db.rpc('reserve_slot', { slot_id: slotId });
+    if (error || !ok) {
+      alert('Часът вече е зает. Моля изберете друг.');
+      await loadMonthSlots(); renderCal(); return;
+    }
+    selectedSlot = { id: slotId, time: slotTime };
+    startPendingTimer();
+    renderTimeSlots();
+    document.getElementById('bookingFormWrap').style.display = 'block';
+    document.getElementById('bookingFormWrap').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function startPendingTimer() {
+    pendingExpiry = Date.now() + 2 * 60 * 1000;
+    clearInterval(pendingTimerInterval);
+    pendingTimerInterval = setInterval(() => {
+      const left = pendingExpiry - Date.now();
+      if (left <= 0) {
+        clearPending();
+        alert('Времето изтече. Часът беше освободен. Изберете отново.');
+        loadMonthSlots().then(() => renderCal());
+        return;
+      }
+      const m = Math.floor(left / 60000);
+      const s = Math.floor((left % 60000) / 1000);
+      const el = document.getElementById('pendingTimer');
+      if (el) el.textContent = `⏳ Запазен за: ${m}:${pad(s)}`;
+    }, 1000);
+  }
+
+  function clearPending() {
+    clearInterval(pendingTimerInterval);
+    pendingTimerInterval = null; pendingExpiry = null;
+    selectedSlot = null;
+    const el = document.getElementById('pendingTimer');
+    if (el) el.textContent = '';
+    const fw = document.getElementById('bookingFormWrap');
+    if (fw) fw.style.display = 'none';
+  }
+
+  async function prevMonth() {
+    calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; }
+    await loadMonthSlots(); renderCal();
+  }
+  async function nextMonth() {
+    calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; }
+    await loadMonthSlots(); renderCal();
+  }
+
+  // ── BOOKING SUBMIT ────────────────────────────────────
+  function resetBookingForm() {
+    ['bName','bEmail','bPhone','bComplaint'].forEach(id => {
+      const el = document.getElementById(id); if(el) el.value = '';
+    });
+    const fw = document.getElementById('bookingFormWrap');
+    if (fw) fw.style.display = 'none';
+  }
+
+  async function submitBooking(e) {
+    e.preventDefault();
+    if (!selectedSlot) { alert('Изберете час.'); return; }
+    if (!pendingExpiry || Date.now() > pendingExpiry) {
+      alert('Времето изтече. Изберете отново.');
+      clearPending(); await loadMonthSlots(); renderCal(); return;
+    }
+
+    const btn = e.target.querySelector('button[type=submit]');
+    btn.disabled = true; btn.textContent = 'Изпраща...';
+
+    const payload = {
+      p_slot_id: selectedSlot.id,
+      p_patient_name:  document.getElementById('bName').value.trim(),
+      p_patient_email: document.getElementById('bEmail').value.trim(),
+      p_patient_phone: document.getElementById('bPhone').value.trim(),
+      p_complaint:     document.getElementById('bComplaint').value.trim()
+    };
+
+    const { data: bookingId, error } = await db.rpc('confirm_booking', payload);
+    if (error) {
+      alert('Грешка при резервация: ' + error.message);
+      btn.disabled = false; btn.textContent = 'Потвърди резервацията';
+      return;
+    }
+
+    const slotDate    = selectedDate;
+    const slotTime    = selectedSlot.time;
+    const doctorSnap  = { ...currentDoctor };
+    clearPending();
+
+    await Promise.allSettled([
+      sendDoctorEmail(payload, doctorSnap, slotDate, slotTime),
+      sendPatientEmail(payload, doctorSnap, slotDate, slotTime)
+    ]);
+
+    closeModal();
+    showSuccessModal(payload.p_patient_name, fmtDate(slotDate), slotTime.slice(0,5), doctorSnap);
+  }
+
+  async function sendDoctorEmail(p, doc, date, time) {
+    if (!doc.email) return;
+    return emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_DOCTOR_TEMPLATE, {
+      to_email:       doc.email,
+      doctor_name:    doc.name,
+      patient_name:   p.p_patient_name,
+      patient_email:  p.p_patient_email,
+      patient_phone:  p.p_patient_phone || 'Не е посочен',
+      complaint:      p.p_complaint     || 'Не е посочено',
+      date:           fmtDate(date),
+      time:           time.slice(0,5),
+      pharmacy_name:  PHARMACY_NAME,
+      pharmacy_phone: PHARMACY_PHONE,
+    });
+  }
+
+  async function sendPatientEmail(p, doc, date, time) {
+    return emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_PATIENT_TEMPLATE, {
+      to_email:       p.p_patient_email,
+      patient_name:   p.p_patient_name,
+      doctor_name:    doc.name,
+      specialty:      doc.specialty,
+      date:           fmtDate(date),
+      time:           time.slice(0,5),
+      pharmacy_name:  PHARMACY_NAME,
+      pharmacy_phone: PHARMACY_PHONE,
+      pharmacy_addr:  PHARMACY_ADDR,
+    });
+  }
+
+  function showSuccessModal(name, date, time, doc) {
+    document.getElementById('successMsg').innerHTML =
+      `<strong>${escHtml(name)}</strong>, резервацията ви е потвърдена!<br>
+       Консултация с <strong>${escHtml(doc?.name||'специалист')}</strong><br>
+       на <strong>${date}</strong> в <strong>${time}</strong> ч.<br><br>
+       Ще получите потвърждение на имейла ви.`;
+    document.getElementById('successModal').classList.add('show');
+  }
+
+  function closeSuccess() {
+    document.getElementById('successModal').classList.remove('show');
+    loadDoctors();
+  }
+
+  // ── HELPERS ───────────────────────────────────────────
+  function today() { return new Date().toISOString().split('T')[0]; }
+  function pad(n)  { return String(n).padStart(2,'0'); }
+  function fmtDate(d) {
+    if (!d) return '';
+    const dt = new Date(d + 'T00:00:00');
+    return dt.toLocaleDateString('bg-BG', { day:'numeric', month:'long', year:'numeric' });
+  }
+  function starsHTML(r) {
+    const full = Math.floor(r||0);
+    return '★'.repeat(full) + '☆'.repeat(5-full);
+  }
+  function escHtml(str) {
+    return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function avatarEl(d, size) {
+    const ini = d.initials || (d.name||'?').split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    const col = d.color || '#0d2d4e';
+    if (d.photo_url) {
+      return `<div class="avatar" style="width:${size}px;height:${size}px;border-radius:50%;overflow:hidden;border:3px solid var(--accent)"><img src="${escHtml(d.photo_url)}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.innerHTML='${escHtml(ini)}'"></div>`;
+    }
+    return `<div class="avatar" style="width:${size}px;height:${size}px;line-height:${size}px;border-radius:50%;background:${escHtml(col)};color:#fff;font-size:${size*.3}px;font-weight:700;text-align:center;border:3px solid var(--accent)">${escHtml(ini)}</div>`;
+  }
+</script>
+</body>
+</html>
