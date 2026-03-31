@@ -390,6 +390,13 @@ footer strong{color:#a8c8e8}
   </div>
 </div>
 
+<!-- BOOKING MODAL -->
+<div id="bookingModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:999;overflow-y:auto;padding:20px;" onclick="if(event.target===this)closeBookingModal()">
+  <div style="background:#fff;max-width:600px;margin:40px auto;border-radius:14px;padding:28px;position:relative;">
+    <div id="modalContent"></div>
+  </div>
+</div>
+
 <!-- FOOTER -->
 <footer>
   <p><strong>Ilchevska Pharmacy</strong> – Медицинска Платформа &copy; 2026</p>
@@ -465,7 +472,7 @@ function renderGrid(list) {
     return;
   }
   grid.innerHTML = list.map(d => `
-    <div class="doc-card" onclick="showProfile('${escHtml(d.id)}')">
+    <div class="doc-card" onclick="openModal('${escHtml(d.id)}')">
       <div class="card-top">
         <div class="avail-dot ${d.is_available?'online':'offline'}" title="${d.is_available?'Наличен':'Не е наличен'}"></div>
         ${avatarHTML(d)}
@@ -478,7 +485,7 @@ function renderGrid(list) {
         <div class="next-slot">🕐 <span>Опит:</span> ${d.experience_years||0} г.</div>
       </div>
       <div class="card-footer">
-        <button class="btn-view">Виж профил</button>
+        <button class="btn-book" onclick="event.stopPropagation(); openModal('${escHtml(d.id)}')">Резервирай час</button>
       </div>
     </div>
   `).join('');
@@ -529,7 +536,210 @@ function resetFilters() {
 }
 
 // ══════════════════════════════════════════
-//  CALENDAR
+//  BOOKING MODAL
+// ══════════════════════════════════════════
+async function openModal(id) {
+  const d = allDoctors.find(doc => String(doc.id) === String(id));
+  if(!d) return;
+  currentDoctor = d;
+  selectedDate = null; selectedTime = null; selectedSlotId = null;
+
+  document.getElementById('bookingModal').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+  document.getElementById('modalContent').innerHTML =
+    '<p style="text-align:center;padding:2rem;color:var(--muted)">Зареждане на часове...</p>';
+
+  await loadDoctorSlots(d.id);
+
+  const now = new Date();
+  calYear = now.getFullYear(); calMonth = now.getMonth();
+  renderModalFull();
+}
+
+function renderModalFull() {
+  const d   = currentDoctor;
+  const col = d.avatar_color || '#1d4e89';
+  const ini = d.initials || '';
+  const avHtml = d.photo_url
+    ? `<img src="${escHtml(d.photo_url)}" onerror="this.style.display='none'" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
+    : escHtml(ini);
+
+  document.getElementById('modalContent').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.3rem">
+      <div style="display:flex;gap:.9rem;align-items:center">
+        <div style="width:54px;height:54px;border-radius:50%;background:${escHtml(col)};color:#fff;display:flex;align-items:center;justify-content:center;font-size:1.15rem;font-weight:700;flex-shrink:0;overflow:hidden">${avHtml}</div>
+        <div>
+          <div style="font-size:1rem;font-weight:800;color:var(--navy)">${escHtml(d.name)}</div>
+          <div style="font-size:.82rem;color:var(--muted)">${escHtml(d.specialty||'')}</div>
+          <div style="font-size:.95rem;font-weight:700;color:var(--navy);margin-top:.15rem">${d.price} лв. <span style="font-weight:400;color:var(--muted);font-size:.78rem">/ ${d.duration||30} мин.</span></div>
+        </div>
+      </div>
+      <button onclick="closeBookingModal()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--muted);line-height:1;padding:.2rem .4rem" title="Затвори">✕</button>
+    </div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem">
+      <button onclick="changeModalMonth(-1)" style="background:none;border:1.5px solid var(--border);border-radius:8px;padding:.3rem .65rem;cursor:pointer;font-size:1rem;color:var(--navy)">&#8249;</button>
+      <span id="mCalTitle" style="font-size:.9rem;font-weight:700;color:var(--navy)"></span>
+      <button onclick="changeModalMonth(1)" style="background:none;border:1.5px solid var(--border);border-radius:8px;padding:.3rem .65rem;cursor:pointer;font-size:1rem;color:var(--navy)">&#8250;</button>
+    </div>
+    <div class="cal-grid" id="mCalGrid" style="margin-bottom:1rem"></div>
+
+    <div style="font-size:.85rem;font-weight:700;color:var(--navy);margin-bottom:.55rem">Свободни часове:</div>
+    <div class="time-slots" id="mTimeSlots" style="margin-bottom:1.2rem"></div>
+
+    <div id="mBookingForm">
+      <button class="btn-book" onclick="confirmModalBooking()">📅 Резервирай час</button>
+      <div class="book-note" style="margin-top:.5rem">Безплатна отмяна до 2 часа преди консултацията</div>
+    </div>
+  `;
+
+  renderModalCal();
+  renderModalSlots();
+}
+
+function renderModalCal() {
+  const titleEl = document.getElementById('mCalTitle');
+  const grid    = document.getElementById('mCalGrid');
+  if(!titleEl || !grid) return;
+  titleEl.textContent = `${MONTHS[calMonth]} ${calYear}`;
+
+  const now   = new Date(); now.setHours(0,0,0,0);
+  const first = new Date(calYear, calMonth, 1);
+  const last  = new Date(calYear, calMonth+1, 0);
+  const availDates = new Set(doctorSlots.map(s => s.date));
+
+  let html = DAYS.map(d=>`<div class="cal-day header">${d}</div>`).join('');
+  for(let i = 0; i < first.getDay(); i++) html += `<div class="cal-day empty"></div>`;
+  for(let i = 1; i <= last.getDate(); i++) {
+    const d      = new Date(calYear, calMonth, i);
+    const ds     = dateStr(d);
+    const isPast = d < now;
+    const isTod  = d.getTime() === now.getTime();
+    const isSel  = selectedDate && d.getTime() === selectedDate.getTime();
+    const isAvail= !isPast && availDates.has(ds);
+    let cls = 'cal-day' + (isSel ? ' selected' : isAvail ? ' avail' : ' unavail') + (isTod ? ' today' : '');
+    const click = isAvail ? `onclick="selectModalDate(${calYear},${calMonth},${i})"` : '';
+    html += `<div class="${cls}" ${click}>${i}</div>`;
+  }
+  grid.innerHTML = html;
+}
+
+function renderModalSlots() {
+  const c = document.getElementById('mTimeSlots');
+  if(!c) return;
+  if(!selectedDate) {
+    c.innerHTML = '<span style="font-size:.82rem;color:var(--muted)">Изберете дата</span>'; return;
+  }
+  const ds = dateStr(selectedDate);
+  const daySlots = doctorSlots.filter(s => s.date === ds)
+    .sort((a,b) => a.time.localeCompare(b.time));
+  if(!daySlots.length) {
+    c.innerHTML = '<span style="font-size:.82rem;color:var(--muted)">Няма свободни часове</span>'; return;
+  }
+  c.innerHTML = daySlots.map(s => {
+    const t = s.time.slice(0,5);
+    return `<div class="time-slot${s.id===selectedSlotId?' selected':''}" onclick="selectModalTime('${t}','${s.id}')">${t}</div>`;
+  }).join('');
+}
+
+function changeModalMonth(dir) {
+  calMonth += dir;
+  if(calMonth > 11){ calMonth = 0; calYear++; }
+  if(calMonth < 0) { calMonth = 11; calYear--; }
+  selectedDate = null; selectedTime = null; selectedSlotId = null;
+  renderModalCal(); renderModalSlots();
+}
+
+function selectModalDate(y, m, day) {
+  selectedDate = new Date(y, m, day);
+  selectedTime = null; selectedSlotId = null;
+  renderModalCal(); renderModalSlots();
+}
+
+function selectModalTime(t, slotId) {
+  selectedTime = t; selectedSlotId = slotId;
+  renderModalSlots();
+}
+
+function closeBookingModal() {
+  document.getElementById('bookingModal').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+function confirmModalBooking() {
+  if(!selectedDate || !selectedTime) {
+    alert('Моля, изберете дата и час за консултацията.'); return;
+  }
+  const dateLabel = selectedDate.toLocaleDateString('bg-BG',{day:'numeric',month:'long',year:'numeric'});
+  document.getElementById('mBookingForm').innerHTML = `
+    <div style="background:var(--green3);border-radius:8px;padding:.6rem .8rem;font-size:.88rem;font-weight:700;color:var(--navy);margin-bottom:1rem">
+      📅 ${escHtml(currentDoctor.name)}<br>${escHtml(dateLabel)} – ${escHtml(selectedTime)} ч.
+    </div>
+    <div style="margin-bottom:.65rem">
+      <label style="font-size:.8rem;font-weight:600;color:var(--muted);display:block;margin-bottom:.25rem">Три имена *</label>
+      <input id="bkName" type="text" required placeholder="Иван Иванов" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:.5rem .7rem;font-size:.9rem;outline:none">
+    </div>
+    <div style="margin-bottom:.65rem">
+      <label style="font-size:.8rem;font-weight:600;color:var(--muted);display:block;margin-bottom:.25rem">Имейл *</label>
+      <input id="bkEmail" type="email" required placeholder="email@example.com" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:.5rem .7rem;font-size:.9rem;outline:none">
+    </div>
+    <div style="margin-bottom:.65rem">
+      <label style="font-size:.8rem;font-weight:600;color:var(--muted);display:block;margin-bottom:.25rem">Телефон *</label>
+      <input id="bkPhone" type="tel" required placeholder="0888 123 456" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:.5rem .7rem;font-size:.9rem;outline:none">
+    </div>
+    <div style="margin-bottom:1rem">
+      <label style="font-size:.8rem;font-weight:600;color:var(--muted);display:block;margin-bottom:.25rem">Оплакване / бележка (по желание)</label>
+      <textarea id="bkComplaint" rows="2" placeholder="Опишете накратко..." style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:.5rem .7rem;font-size:.9rem;resize:vertical;outline:none"></textarea>
+    </div>
+    <button class="btn-book" onclick="submitModalBooking()">✅ Потвърди резервацията</button>
+    <button onclick="renderModalFull()" style="width:100%;background:none;border:1.5px solid var(--border);border-radius:8px;padding:.55rem;font-size:.85rem;color:var(--muted);cursor:pointer;margin-top:.5rem">← Назад</button>
+  `;
+}
+
+async function submitModalBooking() {
+  const name      = document.getElementById('bkName')?.value.trim();
+  const email     = document.getElementById('bkEmail')?.value.trim();
+  const phone     = document.getElementById('bkPhone')?.value.trim();
+  const complaint = document.getElementById('bkComplaint')?.value.trim();
+
+  if(!name || !email || !phone) { alert('Моля, попълнете задължителните полета.'); return; }
+
+  const btn = document.querySelector('#mBookingForm .btn-book');
+  if(btn) { btn.disabled = true; btn.textContent = 'Запазване...'; }
+
+  const { error: bkErr } = await db.from('bookings').insert({
+    doctor_id:     currentDoctor.id,
+    slot_id:       selectedSlotId,
+    patient_name:  name,
+    patient_email: email,
+    patient_phone: phone,
+    complaint:     complaint || null,
+    status:        'pending',
+  });
+
+  if(bkErr) {
+    alert('Грешка при резервацията: ' + bkErr.message);
+    if(btn) { btn.disabled = false; btn.textContent = '✅ Потвърди резервацията'; }
+    return;
+  }
+
+  await db.from('time_slots').update({ is_booked: true }).eq('id', selectedSlotId);
+  doctorSlots = doctorSlots.filter(s => s.id !== selectedSlotId);
+
+  const dateLabel = selectedDate.toLocaleDateString('bg-BG',{day:'numeric',month:'long',year:'numeric'});
+  closeBookingModal();
+
+  document.getElementById('modalMsg').innerHTML =
+    `Консултация с <strong>${escHtml(currentDoctor.name)}</strong><br>
+     <strong>${escHtml(dateLabel)}</strong> в <strong>${escHtml(selectedTime)}</strong> ч.<br><br>
+     Ще получите потвърждение по имейл.`;
+  document.getElementById('overlay').classList.add('show');
+
+  selectedDate = null; selectedTime = null; selectedSlotId = null;
+}
+
+// ══════════════════════════════════════════
+//  CALENDAR (profile page)
 // ══════════════════════════════════════════
 function initCal() {
   const now = new Date();
