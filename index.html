@@ -265,7 +265,7 @@
     .next-slot { font-size: 0.78rem; color: var(--text-light); }
     .next-slot span { font-weight: 600; }
     .card-footer { padding: 0 16px 16px; }
-    .btn-view {
+    .btn-view, .btn-book {
       display: block;
       width: 100%;
       background: var(--accent);
@@ -278,7 +278,7 @@
       cursor: pointer;
       transition: background var(--transition);
     }
-    .btn-view:hover { background: var(--accent-dark); }
+    .btn-view:hover, .btn-book:hover { background: var(--accent-dark); }
 
     .no-results {
       grid-column: 1/-1;
@@ -944,7 +944,7 @@
           <div class="card-price">${d.price} лв. <small>/ консултация</small></div>
           <div class="next-slot">🕐 <span>Следващ час:</span> ${nextText}</div>
         </div>
-        <div class="card-footer"><button class="btn-view">Резервирай час</button></div>
+        <div class="card-footer"><button class="btn-book" onclick="event.stopPropagation(); openModal('${d.id}')">Резервирай час</button></div>
       </div>`;
     }).join('');
   }
