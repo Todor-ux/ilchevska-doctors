@@ -6,15 +6,16 @@
   <title>Лекарски Панел – Ilchevska Pharmacy</title>
   <style>
     :root {
-      --primary: #0d2d4e;
-      --primary-dark: #091f36;
+      --primary: #1d4e89;
+      --primary-dark: #0d2847;
       --primary-light: #1a4570;
-      --accent: #2a9d5c;
-      --accent-dark: #1e7a45;
+      --accent: #2e7d32;
+      --accent-dark: #1b5e20;
       --accent-light: #3db870;
       --bg: #f0f4f8;
+      --bg-light: #f5f5f7;
       --card-bg: #ffffff;
-      --sidebar-bg: #0d2d4e;
+      --sidebar-bg: #1d4e89;
       --text: #1a2636;
       --text-light: #4a5568;
       --muted: #8a9ab0;
@@ -276,6 +277,36 @@
 
     /* Save msg */
     .save-msg { font-size: 0.85rem; color: var(--accent); font-weight: 700; margin-top: 8px; min-height: 22px; }
+
+    /* ── WEEKLY CALENDAR ── */
+    .week-nav { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; flex-wrap:wrap; gap:.5rem; }
+    .week-label { font-weight:700; color:var(--primary); font-size:.95rem; }
+    .btn-week-nav { background:var(--primary); color:#fff; border:none; padding:.5rem 1.1rem; border-radius:8px; cursor:pointer; font-size:.88rem; transition:opacity .2s; }
+    .btn-week-nav:hover { opacity:.85; }
+    .week-summary { background:var(--bg-light); border-radius:10px; padding:.75rem 1.2rem; margin-bottom:1rem; font-size:.9rem; color:var(--primary); border-left:4px solid var(--accent); }
+    .week-actions { margin-top:1rem; text-align:center; }
+    .btn-copy-week { background:var(--accent); color:#fff; border:none; padding:.7rem 1.8rem; border-radius:10px; font-size:.92rem; font-weight:700; cursor:pointer; transition:opacity .2s; }
+    .btn-copy-week:hover { opacity:.88; }
+
+    .wcal-grid { display:grid; grid-template-columns:52px repeat(7,1fr); gap:2px; overflow-x:auto; }
+    .wcal-day-header { text-align:center; font-weight:700; font-size:.8rem; color:var(--primary); padding:.5rem .2rem; background:#fff; border-radius:6px; }
+    .wcal-day-header.today { background:var(--primary); color:#fff; }
+    .wcal-day-date { font-size:.72rem; font-weight:400; opacity:.8; }
+    .wcal-time-header { }
+    .wcal-time-label { font-size:.72rem; color:#888; text-align:right; padding-right:6px; display:flex; align-items:center; justify-content:flex-end; height:28px; }
+    .wcal-slot { height:28px; border-radius:4px; cursor:pointer; transition:filter .15s, transform .1s; }
+    .wcal-slot:hover { filter:brightness(1.1); transform:scale(1.04); }
+    .wcal-slot.free    { background:#2e7d32; }
+    .wcal-slot.booked  { background:#c62828; cursor:not-allowed; }
+    .wcal-slot.inactive{ background:#e0e0e0; }
+    .wcal-slot.booked:hover { filter:none; transform:none; }
+
+    .wcal-legend { display:flex; gap:1.2rem; margin-top:.8rem; flex-wrap:wrap; }
+    .leg-item { display:flex; align-items:center; gap:.4rem; font-size:.82rem; color:#555; }
+    .leg-dot { width:14px; height:14px; border-radius:3px; display:inline-block; }
+    .leg-dot.free    { background:#2e7d32; }
+    .leg-dot.booked  { background:#c62828; }
+    .leg-dot.inactive{ background:#e0e0e0; }
   </style>
 </head>
 <body>
@@ -362,53 +393,24 @@
     <div id="tab-slots" class="tab-content">
       <div class="tab-header">
         <h2>Управление на часове</h2>
-        <p>Добавете свободни часове за резервации</p>
+        <p>Визуален седмичен календар за резервации</p>
       </div>
 
-      <!-- Add single slot -->
-      <div class="panel-card">
-        <h3>Добави един час</h3>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Дата</label>
-            <input id="newSlotDate" type="date">
-          </div>
-          <div class="form-group">
-            <label>Час</label>
-            <input id="newSlotTime" type="time">
-          </div>
-          <button class="btn-primary" onclick="addSlot()">+ Добави</button>
-        </div>
+      <!-- Week navigation -->
+      <div class="week-nav">
+        <button onclick="prevWeek()" class="btn-week-nav">← Предишна седмица</button>
+        <span id="weekRangeLabel" class="week-label"></span>
+        <button onclick="nextWeek()" class="btn-week-nav">Следваща седмица →</button>
       </div>
 
-      <!-- Bulk slots -->
-      <div class="panel-card">
-        <h3>Добави серия часове</h3>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Дата</label>
-            <input id="bulkDate" type="date">
-          </div>
-          <div class="form-group">
-            <label>От час</label>
-            <input id="bulkStart" type="time" value="09:00">
-          </div>
-          <div class="form-group">
-            <label>До час</label>
-            <input id="bulkEnd" type="time" value="17:00">
-          </div>
-          <div class="form-group">
-            <label>Интервал (мин)</label>
-            <input id="bulkInterval" type="number" value="30" min="10" max="120">
-          </div>
-          <button class="btn-primary" onclick="addBulkSlots()">+ Добави серия</button>
-        </div>
+      <div class="week-summary" id="weekSummary"></div>
+
+      <div class="week-calendar" id="weekCalendar">
+        <!-- Generated by JS -->
       </div>
 
-      <!-- Slots list -->
-      <div class="panel-card">
-        <h3>Часове</h3>
-        <div id="slotsList"></div>
+      <div class="week-actions">
+        <button onclick="copyWeekToNext()" class="btn-copy-week">📋 Копирай тази седмица → следваща</button>
       </div>
     </div>
 
@@ -546,7 +548,7 @@
     document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
     if      (tab === 'today')   loadTodayBookings();
     else if (tab === 'week')    loadWeekBookings();
-    else if (tab === 'slots')   loadSlots();
+    else if (tab === 'slots')   loadWeekCalendar();
     else if (tab === 'profile') loadProfileForm();
     else if (tab === 'stats')   loadStats();
   }
@@ -734,6 +736,151 @@
   function escHtml(str) {
     return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
+
+  // ── VISUAL WEEKLY CALENDAR ────────────────────────────────
+  const SLOT_HOURS = [];
+  for (let h = 8; h < 18; h++) {
+    SLOT_HOURS.push(`${String(h).padStart(2,'0')}:00`);
+    SLOT_HOURS.push(`${String(h).padStart(2,'0')}:30`);
+  }
+  const WEEK_DAYS_BG = ['Пон','Вт','Ср','Чет','Пет','Съб','Нед'];
+
+  let weekOffset = 0;
+  let weekSlotsData = []; // all slots for current week
+
+  function getWeekDates(offset = 0) {
+    const now = new Date();
+    const dayOfWeek = now.getDay(); // 0=Sun
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1) + offset * 7);
+    monday.setHours(0,0,0,0);
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      days.push(d);
+    }
+    return days;
+  }
+
+  function dateToStr(d) { return d.toISOString().split('T')[0]; }
+
+  async function loadWeekCalendar() {
+    if (!currentDoctor) return;
+    const days = getWeekDates(weekOffset);
+    const start = dateToStr(days[0]);
+    const end   = dateToStr(days[6]);
+
+    // Update label
+    document.getElementById('weekRangeLabel').textContent =
+      days[0].toLocaleDateString('bg-BG',{day:'numeric',month:'long'}) + ' – ' +
+      days[6].toLocaleDateString('bg-BG',{day:'numeric',month:'long',year:'numeric'});
+
+    // Fetch slots
+    const { data } = await db.from('time_slots').select('*')
+      .eq('doctor_id', currentDoctor.id)
+      .gte('date', start).lte('date', end);
+    weekSlotsData = data || [];
+
+    renderWeekCalendar(days);
+    renderWeekSummary();
+  }
+
+  function renderWeekCalendar(days) {
+    const cal = document.getElementById('weekCalendar');
+    const todayStr = dateToStr(new Date());
+
+    let html = '<div class="wcal-grid">';
+
+    // Header row
+    html += '<div class="wcal-time-header"></div>';
+    days.forEach((d, i) => {
+      const ds = dateToStr(d);
+      const isToday = ds === todayStr;
+      html += `<div class="wcal-day-header ${isToday ? 'today' : ''}">
+        <div>${WEEK_DAYS_BG[i]}</div>
+        <div class="wcal-day-date">${d.getDate()}.${String(d.getMonth()+1).padStart(2,'0')}</div>
+      </div>`;
+    });
+
+    // Time rows
+    SLOT_HOURS.forEach(time => {
+      html += `<div class="wcal-time-label">${time}</div>`;
+      days.forEach(d => {
+        const ds = dateToStr(d);
+        const slot = weekSlotsData.find(s => s.date === ds && s.time.slice(0,5) === time);
+        let cls = 'wcal-slot inactive';
+        let title = 'Кликни за добавяне';
+        let onclick = `toggleSlot('${ds}','${time}',null)`;
+        if (slot) {
+          if (slot.is_booked) {
+            cls = 'wcal-slot booked';
+            title = 'Резервиран – не може да се маха';
+            onclick = '';
+          } else {
+            cls = 'wcal-slot free';
+            title = 'Свободен – кликни за премахване';
+            onclick = `toggleSlot('${ds}','${time}','${slot.id}')`;
+          }
+        }
+        html += `<div class="${cls}" title="${title}" ${onclick ? `onclick="${onclick}"` : ''}></div>`;
+      });
+    });
+
+    html += '</div>';
+
+    // Legend
+    html += `<div class="wcal-legend">
+      <span class="leg-item"><span class="leg-dot free"></span>Свободен</span>
+      <span class="leg-item"><span class="leg-dot booked"></span>Резервиран</span>
+      <span class="leg-item"><span class="leg-dot inactive"></span>Неактивен</span>
+    </div>`;
+
+    cal.innerHTML = html;
+  }
+
+  function renderWeekSummary() {
+    const free   = weekSlotsData.filter(s => !s.is_booked && !s.is_pending).length;
+    const booked = weekSlotsData.filter(s => s.is_booked).length;
+    document.getElementById('weekSummary').innerHTML =
+      `<span>📊 Тази седмица: <strong>${free}</strong> свободни часа и <strong>${booked}</strong> резервации</span>`;
+  }
+
+  async function toggleSlot(date, time, existingId) {
+    if (!currentDoctor) return;
+    if (existingId) {
+      // Delete (free slot)
+      await db.from('time_slots').delete().eq('id', existingId);
+    } else {
+      // Add
+      const { error } = await db.from('time_slots').insert({
+        doctor_id: currentDoctor.id, date, time: time + ':00'
+      });
+      if (error && error.code === '23505') return; // already exists
+    }
+    await loadWeekCalendar();
+  }
+
+  async function copyWeekToNext() {
+    if (!currentDoctor) return;
+    const freeSlotsThisWeek = weekSlotsData.filter(s => !s.is_booked);
+    if (!freeSlotsThisWeek.length) { alert('Няма свободни часове тази седмица за копиране.'); return; }
+
+    const newSlots = freeSlotsThisWeek.map(s => {
+      const nextDate = new Date(s.date + 'T00:00:00');
+      nextDate.setDate(nextDate.getDate() + 7);
+      return { doctor_id: currentDoctor.id, date: dateToStr(nextDate), time: s.time };
+    });
+
+    const { error } = await db.from('time_slots').upsert(newSlots, { onConflict: 'doctor_id,date,time' });
+    if (error) { alert('Грешка: ' + error.message); return; }
+    alert(`✓ Копирани ${newSlots.length} часа за следващата седмица!`);
+    weekOffset++;
+    await loadWeekCalendar();
+  }
+
+  function prevWeek() { weekOffset--; loadWeekCalendar(); }
+  function nextWeek() { weekOffset++; loadWeekCalendar(); }
 </script>
 </body>
 </html>

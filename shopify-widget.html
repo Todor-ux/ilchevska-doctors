@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ilchevska Pharmacy – Онлайн Консултации</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: transparent; }
+
+  .widget-container {
+    background: linear-gradient(135deg, #1d4e89 0%, #0d2847 100%);
+    border-radius: 16px;
+    padding: 2.5rem 2rem;
+    color: #fff;
+    max-width: 800px;
+    margin: 0 auto;
+    box-shadow: 0 8px 32px rgba(29,78,137,.35);
+    text-align: center;
+  }
+
+  .widget-badge {
+    display: inline-block;
+    background: rgba(255,255,255,.15);
+    border: 1px solid rgba(255,255,255,.3);
+    color: #fff;
+    font-size: .78rem;
+    font-weight: 600;
+    padding: .35rem 1rem;
+    border-radius: 50px;
+    letter-spacing: .06em;
+    margin-bottom: 1.2rem;
+    text-transform: uppercase;
+  }
+
+  .widget-title {
+    font-size: 1.9rem;
+    font-weight: 800;
+    line-height: 1.2;
+    margin-bottom: .6rem;
+  }
+
+  .widget-subtitle {
+    color: #b8d4f0;
+    font-size: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .widget-features {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-bottom: 2.2rem;
+    flex-wrap: wrap;
+  }
+
+  .feature-item {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    background: rgba(255,255,255,.1);
+    border: 1px solid rgba(255,255,255,.2);
+    border-radius: 50px;
+    padding: .5rem 1.1rem;
+    font-size: .88rem;
+    font-weight: 600;
+    backdrop-filter: blur(4px);
+  }
+
+  .feature-icon { font-size: 1.1rem; }
+
+  .cta-btn {
+    display: inline-block;
+    background: #2e7d32;
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 800;
+    padding: 1rem 2.8rem;
+    border-radius: 50px;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(46,125,50,.5);
+    transition: background .2s, transform .15s, box-shadow .2s;
+    letter-spacing: .03em;
+  }
+
+  .cta-btn:hover {
+    background: #1b5e20;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(46,125,50,.6);
+  }
+
+  .widget-footer {
+    margin-top: 1.4rem;
+    font-size: .78rem;
+    color: #90b8e0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1.2rem;
+    flex-wrap: wrap;
+  }
+
+  .widget-footer span { display: flex; align-items: center; gap: .3rem; }
+
+  @media (max-width: 500px) {
+    .widget-title { font-size: 1.4rem; }
+    .widget-features { gap: .7rem; }
+    .feature-item { font-size: .8rem; padding: .4rem .8rem; }
+    .cta-btn { font-size: 1rem; padding: .85rem 2rem; }
+    .widget-container { padding: 2rem 1.2rem; border-radius: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="widget-container">
+  <div class="widget-badge">💊 Ilchevska Pharmacy</div>
+
+  <h2 class="widget-title">Консултирай се с лекар онлайн 👨‍⚕️</h2>
+  <p class="widget-subtitle">Над 20 специалиста на един клик разстояние</p>
+
+  <div class="widget-features">
+    <div class="feature-item"><span class="feature-icon">✅</span> Лицензирани лекари</div>
+    <div class="feature-item"><span class="feature-icon">📅</span> Лесна резервация</div>
+    <div class="feature-item"><span class="feature-icon">💊</span> Препоръка за продукти</div>
+  </div>
+
+  <a href="https://ilchevska-doctors.onrender.com" target="_blank" rel="noopener" class="cta-btn">
+    Резервирай консултация
+  </a>
+
+  <div class="widget-footer">
+    <span>📍 ул. Тракия 18, кв. Устово, Смолян</span>
+    <span>📞 0301 808 36</span>
+    <span>🕐 Пон–Пет 08:00–19:00</span>
+  </div>
+</div>
+
+</body>
+</html>

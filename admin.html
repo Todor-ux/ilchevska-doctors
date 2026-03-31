@@ -6,15 +6,16 @@
   <title>Администраторски Панел – Ilchevska Pharmacy</title>
   <style>
     :root {
-      --primary: #0d2d4e;
-      --primary-dark: #091f36;
+      --primary: #1d4e89;
+      --primary-dark: #0d2847;
       --primary-light: #1a4570;
-      --accent: #2a9d5c;
-      --accent-dark: #1e7a45;
+      --accent: #2e7d32;
+      --accent-dark: #1b5e20;
       --accent-light: #3db870;
       --bg: #f0f4f8;
+      --bg-light: #f5f5f7;
       --card-bg: #ffffff;
-      --sidebar-bg: #091f36;
+      --sidebar-bg: #0d2847;
       --text: #1a2636;
       --text-light: #4a5568;
       --muted: #8a9ab0;
@@ -333,6 +334,44 @@
     .btn-save:hover { background: var(--accent-dark); }
 
     .empty-row td { text-align: center; padding: 36px; color: var(--muted); }
+
+    .btn-teal { background:#00796b; color:#fff; }
+    .btn-teal:hover { background:#00695c; }
+
+    /* ── WEEKLY CALENDAR ── */
+    .week-nav { display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem; flex-wrap:wrap; gap:.5rem; }
+    .week-label { font-weight:700; color:var(--primary); font-size:.95rem; }
+    .btn-week-nav { background:var(--primary); color:#fff; border:none; padding:.5rem 1.1rem; border-radius:8px; cursor:pointer; font-size:.88rem; transition:opacity .2s; }
+    .btn-week-nav:hover { opacity:.85; }
+    .week-summary { background:var(--bg-light); border-radius:10px; padding:.75rem 1.2rem; margin-bottom:1rem; font-size:.9rem; color:var(--primary); border-left:4px solid var(--accent); }
+    .week-actions { margin-top:1rem; text-align:center; }
+    .btn-copy-week { background:var(--accent); color:#fff; border:none; padding:.7rem 1.8rem; border-radius:10px; font-size:.92rem; font-weight:700; cursor:pointer; transition:opacity .2s; }
+    .btn-copy-week:hover { opacity:.88; }
+
+    .wcal-grid { display:grid; grid-template-columns:52px repeat(7,1fr); gap:2px; overflow-x:auto; }
+    .wcal-day-header { text-align:center; font-weight:700; font-size:.8rem; color:var(--primary); padding:.5rem .2rem; background:#fff; border-radius:6px; }
+    .wcal-day-header.today { background:var(--primary); color:#fff; }
+    .wcal-day-date { font-size:.72rem; font-weight:400; opacity:.8; }
+    .wcal-time-header { }
+    .wcal-time-label { font-size:.72rem; color:#888; text-align:right; padding-right:6px; display:flex; align-items:center; justify-content:flex-end; height:28px; }
+    .wcal-slot { height:28px; border-radius:4px; cursor:pointer; transition:filter .15s, transform .1s; }
+    .wcal-slot:hover { filter:brightness(1.1); transform:scale(1.04); }
+    .wcal-slot.free    { background:#2e7d32; }
+    .wcal-slot.booked  { background:#c62828; cursor:not-allowed; }
+    .wcal-slot.inactive{ background:#e0e0e0; }
+    .wcal-slot.booked:hover { filter:none; transform:none; }
+
+    .wcal-legend { display:flex; gap:1.2rem; margin-top:.8rem; flex-wrap:wrap; }
+    .leg-item { display:flex; align-items:center; gap:.4rem; font-size:.82rem; color:#555; }
+    .leg-dot { width:14px; height:14px; border-radius:3px; display:inline-block; }
+    .leg-dot.free    { background:#2e7d32; }
+    .leg-dot.booked  { background:#c62828; }
+    .leg-dot.inactive{ background:#e0e0e0; }
+
+    .modal-header { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%); color: #fff; padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; border-radius: var(--radius) var(--radius) 0 0; }
+    .modal-header h2 { font-size: 1.1rem; font-weight: 800; margin: 0; }
+    .modal-close-btn { background: rgba(255,255,255,0.15); border: none; color: #fff; width: 32px; height: 32px; border-radius: 50%; font-size: 1rem; cursor: pointer; transition: background .2s; }
+    .modal-close-btn:hover { background: rgba(255,255,255,0.28); }
   </style>
 </head>
 <body>
@@ -516,7 +555,7 @@
         </div>
         <div class="form-group">
           <label>Цвят на аватар</label>
-          <input id="dColor" type="color" value="#0d2d4e" style="height:42px;cursor:pointer">
+          <input id="dColor" type="color" value="#1d4e89" style="height:42px;cursor:pointer">
         </div>
       </div>
       <div class="form-group">
@@ -546,6 +585,28 @@
         <button type="submit" class="btn-save">💾 Запази</button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- Admin Calendar Modal -->
+<div id="adminCalModal" class="modal-overlay" style="display:none">
+  <div class="modal-box" style="max-width:900px;width:95%;max-height:90vh;overflow-y:auto">
+    <div class="modal-header">
+      <h2 id="adminCalTitle">Часове</h2>
+      <button onclick="document.getElementById('adminCalModal').style.display='none'" class="modal-close-btn">✕</button>
+    </div>
+    <div style="padding:1.5rem">
+      <div class="week-nav">
+        <button onclick="adminPrevWeek()" class="btn-week-nav">← Предишна</button>
+        <span id="adminWeekLabel" class="week-label"></span>
+        <button onclick="adminNextWeek()" class="btn-week-nav">Следваща →</button>
+      </div>
+      <div class="week-summary" id="adminWeekSummary"></div>
+      <div class="week-calendar" id="adminWeekCalendar"></div>
+      <div class="week-actions">
+        <button onclick="adminCopyWeek()" class="btn-copy-week">📋 Копирай тази седмица → следваща</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -622,6 +683,7 @@
         <td><span class="badge ${d.is_available?'green':'red'}">${d.is_available?'Активен':'Неактивен'}</span></td>
         <td style="display:flex;gap:5px;flex-wrap:wrap;">
           <button onclick="editDoctor('${d.id}')" class="btn-small btn-blue">Редактирай</button>
+          <button onclick="openAdminCalendar('${d.id}','${d.name}')" class="btn-small btn-teal">Часове</button>
           <button onclick="toggleDoctor('${d.id}', ${!d.is_available})" class="btn-small ${d.is_available?'btn-orange':'btn-green'}">${d.is_available?'Деактивирай':'Активирай'}</button>
           <button onclick="deleteDoctor('${d.id}')" class="btn-small btn-red">Изтрий</button>
         </td>
@@ -638,7 +700,7 @@
     document.getElementById('dPrice').value    = '';
     document.getElementById('dDuration').value = '30';
     document.getElementById('dExp').value      = '';
-    document.getElementById('dColor').value    = '#0d2d4e';
+    document.getElementById('dColor').value    = '#1d4e89';
     document.getElementById('dAvail').checked  = true;
     document.getElementById('doctorFormModal').style.display = 'flex';
   }
@@ -658,7 +720,7 @@
     document.getElementById('dLangs').value         = (d.languages||[]).join(', ');
     document.getElementById('dTags').value          = (d.tags||[]).join(', ');
     document.getElementById('dPhoto').value         = d.photo_url     || '';
-    document.getElementById('dColor').value         = d.color         || '#0d2d4e';
+    document.getElementById('dColor').value         = d.color         || '#1d4e89';
     document.getElementById('dInitials').value      = d.initials      || '';
     document.getElementById('dAvail').checked       = d.is_available;
     document.getElementById('doctorFormModal').style.display = 'flex';
@@ -749,6 +811,106 @@
   function escHtml(str) {
     return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
+
+  // ── ADMIN CALENDAR ─────────────────────────────────────
+  const ADMIN_SLOT_HOURS = [];
+  for (let h = 8; h < 18; h++) {
+    ADMIN_SLOT_HOURS.push(`${String(h).padStart(2,'0')}:00`);
+    ADMIN_SLOT_HOURS.push(`${String(h).padStart(2,'0')}:30`);
+  }
+  const ADMIN_WEEK_DAYS = ['Пон','Вт','Ср','Чет','Пет','Съб','Нед'];
+
+  let adminCalDoctorId = null;
+  let adminWeekOffset  = 0;
+  let adminWeekSlots   = [];
+
+  function getAdminWeekDates(offset) {
+    const now = new Date();
+    const dow = now.getDay();
+    const mon = new Date(now);
+    mon.setDate(now.getDate() - (dow === 0 ? 6 : dow - 1) + offset * 7);
+    mon.setHours(0,0,0,0);
+    const days = [];
+    for (let i = 0; i < 7; i++) { const d = new Date(mon); d.setDate(mon.getDate()+i); days.push(d); }
+    return days;
+  }
+  function dStr(d) { return d.toISOString().split('T')[0]; }
+
+  async function openAdminCalendar(doctorId, doctorName) {
+    adminCalDoctorId = doctorId;
+    adminWeekOffset  = 0;
+    document.getElementById('adminCalTitle').textContent = 'Часове – ' + doctorName;
+    document.getElementById('adminCalModal').style.display = 'flex';
+    await loadAdminWeek();
+  }
+
+  async function loadAdminWeek() {
+    const days  = getAdminWeekDates(adminWeekOffset);
+    const start = dStr(days[0]); const end = dStr(days[6]);
+    document.getElementById('adminWeekLabel').textContent =
+      days[0].toLocaleDateString('bg-BG',{day:'numeric',month:'long'}) + ' – ' +
+      days[6].toLocaleDateString('bg-BG',{day:'numeric',month:'long',year:'numeric'});
+    const { data } = await db.from('time_slots').select('*')
+      .eq('doctor_id', adminCalDoctorId).gte('date', start).lte('date', end);
+    adminWeekSlots = data || [];
+    renderAdminWeek(days);
+    const free = adminWeekSlots.filter(s=>!s.is_booked).length;
+    const booked = adminWeekSlots.filter(s=>s.is_booked).length;
+    document.getElementById('adminWeekSummary').innerHTML =
+      `<span>📊 <strong>${free}</strong> свободни, <strong>${booked}</strong> резервирани тази седмица</span>`;
+  }
+
+  function renderAdminWeek(days) {
+    const today = dStr(new Date());
+    let html = '<div class="wcal-grid">';
+    html += '<div class="wcal-time-header"></div>';
+    days.forEach((d,i) => {
+      const ds = dStr(d);
+      html += `<div class="wcal-day-header ${ds===today?'today':''}">
+        <div>${ADMIN_WEEK_DAYS[i]}</div><div class="wcal-day-date">${d.getDate()}.${String(d.getMonth()+1).padStart(2,'0')}</div>
+      </div>`;
+    });
+    ADMIN_SLOT_HOURS.forEach(time => {
+      html += `<div class="wcal-time-label">${time}</div>`;
+      days.forEach(d => {
+        const ds = dStr(d);
+        const slot = adminWeekSlots.find(s => s.date===ds && s.time.slice(0,5)===time);
+        let cls='wcal-slot inactive', oc=`adminToggleSlot('${ds}','${time}',null)`;
+        if (slot) {
+          if (slot.is_booked) { cls='wcal-slot booked'; oc=''; }
+          else { cls='wcal-slot free'; oc=`adminToggleSlot('${ds}','${time}','${slot.id}')`; }
+        }
+        html += `<div class="${cls}" ${oc?`onclick="${oc}"`:''} title="${slot?.is_booked?'Резервиран':slot?'Свободен':'Добави'}"></div>`;
+      });
+    });
+    html += '</div>';
+    document.getElementById('adminWeekCalendar').innerHTML = html;
+  }
+
+  async function adminToggleSlot(date, time, existingId) {
+    if (existingId) {
+      await db.from('time_slots').delete().eq('id', existingId);
+    } else {
+      await db.from('time_slots').insert({ doctor_id: adminCalDoctorId, date, time: time+':00' });
+    }
+    await loadAdminWeek();
+  }
+
+  async function adminCopyWeek() {
+    const free = adminWeekSlots.filter(s=>!s.is_booked);
+    if (!free.length) { alert('Няма часове за копиране.'); return; }
+    const newSlots = free.map(s => {
+      const nd = new Date(s.date+'T00:00:00'); nd.setDate(nd.getDate()+7);
+      return { doctor_id: adminCalDoctorId, date: dStr(nd), time: s.time };
+    });
+    await db.from('time_slots').upsert(newSlots, { onConflict: 'doctor_id,date,time' });
+    alert(`✓ Копирани ${newSlots.length} часа!`);
+    adminWeekOffset++;
+    await loadAdminWeek();
+  }
+
+  function adminPrevWeek() { adminWeekOffset--; loadAdminWeek(); }
+  function adminNextWeek() { adminWeekOffset++; loadAdminWeek(); }
 </script>
 </body>
 </html>
