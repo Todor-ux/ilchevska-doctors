@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Кандидатствайте – Ilchevska Pharmacy | Медицинска Платформа</title>
+  <style>
+    :root {
+      --primary: #1d4e89;
+      --primary-dark: #0d2847;
+      --accent: #2e7d32;
+      --bg-light: #f5f5f7;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg-light);
+      color: #1a2636;
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ─────────────────────────────────────── */
+    header {
+      background: var(--primary);
+      color: #fff;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.18);
+    }
+    .header-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+    }
+    .logo {
+      font-size: 1.1rem;
+      font-weight: 700;
+      text-decoration: none;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      letter-spacing: 0.01em;
+    }
+    .logo-sub {
+      font-size: 0.72rem;
+      font-weight: 400;
+      opacity: 0.72;
+      display: block;
+      margin-top: 1px;
+    }
+
+    /* ── HERO BANNER ───────────────────────────────── */
+    .apply-hero {
+      background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 60%, var(--accent) 100%);
+      color: #fff;
+      padding: 48px 20px 40px;
+      text-align: center;
+    }
+    .apply-hero h1 {
+      font-size: clamp(1.5rem, 3vw, 2.2rem);
+      font-weight: 800;
+      margin-bottom: 10px;
+    }
+    .apply-hero p {
+      font-size: 1rem;
+      opacity: 0.88;
+    }
+
+    /* ── MAIN LAYOUT ───────────────────────────────── */
+    .apply-container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 40px 20px 60px;
+      display: grid;
+      grid-template-columns: 60% 40%;
+      gap: 28px;
+      align-items: start;
+    }
+    @media (max-width: 768px) {
+      .apply-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* ── FORM CARD ─────────────────────────────────── */
+    .form-card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 36px 32px;
+      box-shadow: 0 2px 20px rgba(13,40,71,0.10);
+    }
+    .form-card h2 {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: var(--primary);
+      margin-bottom: 24px;
+      padding-bottom: 14px;
+      border-bottom: 2px solid #e8f0fe;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .form-grid .full {
+      grid-column: 1 / -1;
+    }
+    @media (max-width: 560px) {
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+      .form-grid .full {
+        grid-column: 1;
+      }
+    }
+
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-group label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #4a5568;
+    }
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      border: 1.5px solid #d0dce8;
+      border-radius: 9px;
+      padding: 10px 13px;
+      font-size: 0.93rem;
+      color: #1a2636;
+      outline: none;
+      transition: border-color 0.2s;
+      background: #fff;
+      font-family: inherit;
+    }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus { border-color: var(--accent); }
+    .form-group textarea { resize: vertical; }
+    .form-group input[type="file"] {
+      padding: 8px 10px;
+      font-size: 0.85rem;
+      background: #f8fafc;
+      cursor: pointer;
+    }
+
+    .checkbox-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-top: 4px;
+    }
+    .checkbox-row input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      margin-top: 2px;
+      cursor: pointer;
+      accent-color: var(--accent);
+      flex-shrink: 0;
+    }
+    .checkbox-row label {
+      font-size: 0.88rem;
+      color: #4a5568;
+      cursor: pointer;
+      line-height: 1.5;
+    }
+
+    .btn-submit {
+      width: 100%;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 14px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      margin-top: 8px;
+    }
+    .btn-submit:hover { background: #1b5e20; }
+    .btn-submit:active { transform: scale(0.99); }
+    .btn-submit:disabled { background: #9e9e9e; cursor: not-allowed; }
+
+    /* ── SIDEBAR ───────────────────────────────────── */
+    .sidebar-card {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .benefits-box {
+      background: #fff;
+      border-radius: 16px;
+      padding: 28px 24px;
+      box-shadow: 0 2px 20px rgba(13,40,71,0.10);
+    }
+    .benefits-box h3 {
+      font-size: 1.08rem;
+      font-weight: 800;
+      color: var(--primary);
+      margin-bottom: 18px;
+    }
+    .benefits-list {
+      list-style: none;
+      padding: 0;
+      margin-bottom: 20px;
+    }
+    .benefits-list li {
+      font-size: 0.93rem;
+      color: #2d3748;
+      padding: 6px 0;
+      border-bottom: 1px solid #f0f4f8;
+      line-height: 1.5;
+    }
+    .benefits-list li:last-child { border-bottom: none; }
+
+    .stats-section {
+      background: #f0f4f8;
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-top: 4px;
+    }
+    .stats-section h4 {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 8px;
+    }
+    .stats-section ul {
+      list-style: none;
+      padding: 0;
+    }
+    .stats-section ul li {
+      font-size: 0.88rem;
+      color: #4a5568;
+      padding: 3px 0;
+    }
+
+    .testimonial-box {
+      background: var(--primary);
+      border-radius: 16px;
+      padding: 24px 22px;
+      color: #fff;
+      box-shadow: 0 2px 20px rgba(13,40,71,0.15);
+    }
+    .testimonial-box blockquote {
+      font-size: 0.93rem;
+      font-style: italic;
+      opacity: 0.92;
+      line-height: 1.6;
+      margin-bottom: 12px;
+    }
+    .testimonial-box cite {
+      font-size: 0.82rem;
+      font-weight: 700;
+      opacity: 0.78;
+      font-style: normal;
+    }
+
+    /* ── SUCCESS STATE ─────────────────────────────── */
+    #successState {
+      display: none;
+      text-align: center;
+      padding: 3rem 2rem;
+    }
+    #successState h2 {
+      font-size: 1.6rem;
+      color: var(--primary);
+      margin: 16px 0 10px;
+    }
+    #successState p {
+      color: #4a5568;
+      font-size: 1rem;
+      margin-bottom: 24px;
+    }
+    #successState a {
+      display: inline-block;
+      background: var(--primary);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      padding: 12px 28px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      transition: background 0.2s;
+    }
+    #successState a:hover { background: var(--primary-dark); }
+
+    /* ── FOOTER ───────────────────────────────────── */
+    footer {
+      background: var(--primary-dark);
+      color: rgba(255,255,255,0.75);
+      text-align: center;
+      padding: 20px;
+      font-size: 0.82rem;
+    }
+    footer a { color: #81c784; text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<!-- ── HEADER ──────────────────────────────────────────── -->
+<header>
+  <div class="header-inner">
+    <a href="index.html" class="logo">
+      💊 Ilchevska Pharmacy
+      <span class="logo-sub">Медицинска Платформа</span>
+    </a>
+  </div>
+</header>
+
+<!-- ── HERO ────────────────────────────────────────────── -->
+<div class="apply-hero">
+  <h1>Присъединете се като специалист</h1>
+  <p>Попълнете формата по-долу и екипът ни ще се свърже с вас до 3 работни дни</p>
+</div>
+
+<!-- ── MAIN CONTENT ────────────────────────────────────── -->
+<div class="apply-container">
+
+  <!-- LEFT: FORM -->
+  <div>
+    <div class="form-card">
+      <h2>Форма за кандидатстване</h2>
+
+      <form id="applyForm" onsubmit="submitApplication(event)">
+        <div class="form-grid">
+
+          <!-- Три имена -->
+          <div class="form-group full">
+            <label for="aName">Три имена *</label>
+            <input type="text" id="aName" required placeholder="Иван Петров Георгиев">
+          </div>
+
+          <!-- Специалност -->
+          <div class="form-group">
+            <label for="aSpec">Специалност *</label>
+            <select id="aSpec" required>
+              <option value="">— Изберете специалност —</option>
+              <option>Кардиолог</option>
+              <option>Дерматолог</option>
+              <option>Педиатър</option>
+              <option>Невролог</option>
+              <option>Ортопед</option>
+              <option>Гинеколог</option>
+              <option>Офталмолог</option>
+              <option>Психолог</option>
+              <option>Диетолог</option>
+              <option>Фармацевт</option>
+              <option>Уролог</option>
+              <option>Ендокринолог</option>
+              <option>Пулмолог</option>
+              <option>Гастроентеролог</option>
+              <option>Хирург</option>
+              <option>Ревматолог</option>
+              <option>Нефролог</option>
+              <option>Онколог</option>
+              <option>Алерголог</option>
+              <option>Имунолог</option>
+            </select>
+          </div>
+
+          <!-- Град -->
+          <div class="form-group">
+            <label for="aCity">Град *</label>
+            <input type="text" id="aCity" required placeholder="София">
+          </div>
+
+          <!-- Имейл -->
+          <div class="form-group">
+            <label for="aEmail">Имейл адрес *</label>
+            <input type="email" id="aEmail" required placeholder="doctor@example.com">
+          </div>
+
+          <!-- Телефон -->
+          <div class="form-group">
+            <label for="aPhone">Телефон *</label>
+            <input type="tel" id="aPhone" required placeholder="+359 88 123 4567">
+          </div>
+
+          <!-- УИН -->
+          <div class="form-group">
+            <label for="aUin">УИН номер *</label>
+            <input type="text" id="aUin" required placeholder="Уникален идентификационен номер">
+          </div>
+
+          <!-- Години опит -->
+          <div class="form-group">
+            <label for="aExp">Години опит *</label>
+            <input type="number" id="aExp" min="0" max="60" required placeholder="5">
+          </div>
+
+          <!-- Профил URL -->
+          <div class="form-group full">
+            <label for="aProfileUrl">Профил в zdravnatica.bg или друга платформа</label>
+            <input type="url" id="aProfileUrl" placeholder="https://...">
+          </div>
+
+          <!-- Мотивация -->
+          <div class="form-group full">
+            <label for="aMotivation">Защо искате да се присъедините?</label>
+            <textarea id="aMotivation" rows="4" placeholder="Опишете накратко вашата мотивация..."></textarea>
+          </div>
+
+          <!-- Диплома -->
+          <div class="form-group full">
+            <label for="aDiploma">Качете диплома/сертификат</label>
+            <input type="file" id="aDiploma" accept=".pdf,.jpg,.jpeg,.png">
+          </div>
+
+          <!-- Потвърждение -->
+          <div class="form-group full">
+            <div class="checkbox-row">
+              <input type="checkbox" id="aConfirm" required>
+              <label for="aConfirm">Потвърждавам, че съм регистриран лекар в България</label>
+            </div>
+          </div>
+
+        </div><!-- /form-grid -->
+
+        <button type="submit" class="btn-submit">Изпрати кандидатурата →</button>
+      </form>
+
+      <div id="successState" style="display:none; text-align:center; padding:3rem 2rem">
+        <div style="font-size:4rem">🎉</div>
+        <h2>Благодарим за кандидатурата!</h2>
+        <p>Ще разгледаме кандидатурата ви и ще се свържем до <strong>3 работни дни</strong> на посочения имейл.</p>
+        <a href="index.html">← Обратно към платформата</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: SIDEBAR -->
+  <div class="sidebar-card">
+    <div class="benefits-box">
+      <h3>Защо да се присъедините?</h3>
+      <ul class="benefits-list">
+        <li>✅ Достигнете до хиляди пациенти онлайн</li>
+        <li>✅ Управлявайте часовете си сами</li>
+        <li>✅ Получавайте известия за нови резервации</li>
+        <li>✅ Изградете онлайн репутация с отзиви</li>
+      </ul>
+      <div class="stats-section">
+        <h4>📊 Нашата платформа:</h4>
+        <ul>
+          <li>• 500+ консултации извършени</li>
+          <li>• 20+ активни специалисти</li>
+          <li>• 4.8★ средна оценка от пациенти</li>
+          <li>• Покритие в цяла България</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="testimonial-box">
+      <blockquote>
+        "Платформата ни помогна да разширим практиката си значително. Препоръчвам на всеки колега."
+      </blockquote>
+      <cite>– д-р Мария Стоянова, Кардиолог</cite>
+    </div>
+  </div>
+
+</div><!-- /apply-container -->
+
+<!-- ── FOOTER ──────────────────────────────────────────── -->
+<footer>
+  &copy; 2025 Ilchevska Pharmacy. Всички права запазени. |
+  <a href="index.html">Обратно към платформата</a>
+</footer>
+
+<!-- ── SCRIPTS ─────────────────────────────────────────── -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script src="supabase-config.js"></script>
+<script>
+  let db;
+  document.addEventListener('DOMContentLoaded', () => {
+    db = initSupabase();
+    emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+  });
+
+  async function submitApplication(e) {
+    e.preventDefault();
+    const btn = e.target.querySelector('button[type=submit]');
+    btn.disabled = true;
+    btn.textContent = 'Изпраща...';
+
+    const payload = {
+      name:        document.getElementById('aName').value.trim(),
+      specialty:   document.getElementById('aSpec').value,
+      email:       document.getElementById('aEmail').value.trim(),
+      phone:       document.getElementById('aPhone').value.trim(),
+      uin:         document.getElementById('aUin').value.trim(),
+      city:        document.getElementById('aCity').value.trim(),
+      experience:  parseInt(document.getElementById('aExp').value) || 0,
+      profile_url: document.getElementById('aProfileUrl').value.trim() || null,
+      motivation:  document.getElementById('aMotivation').value.trim() || null,
+      status:      'pending'
+    };
+
+    const { error } = await db.from('applications').insert(payload);
+    if (error) {
+      alert('Грешка: ' + error.message);
+      btn.disabled = false;
+      btn.textContent = 'Изпрати кандидатурата →';
+      return;
+    }
+
+    // Send notification email to admin via EmailJS
+    try {
+      await emailjs.send(EMAILJS_SERVICE_ID, 'template_apply_notify', {
+        to_email:   ADMIN_EMAIL,
+        doc_name:   payload.name,
+        specialty:  payload.specialty,
+        email:      payload.email,
+        phone:      payload.phone,
+        uin:        payload.uin,
+        city:       payload.city,
+        experience: payload.experience,
+        profile_url: payload.profile_url || 'Не е посочен',
+        motivation: payload.motivation  || 'Не е посочена',
+        pharmacy_name: PHARMACY_NAME,
+      });
+    } catch(err) {
+      console.warn('Email notification failed:', err);
+    }
+
+    document.getElementById('applyForm').style.display = 'none';
+    document.getElementById('successState').style.display = 'block';
+  }
+</script>
+</body>
+</html>

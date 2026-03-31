@@ -79,6 +79,28 @@ CREATE TABLE reviews (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- ТАБЛИЦА: applications
+CREATE TABLE applications (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  specialty TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT NOT NULL,
+  uin TEXT NOT NULL,
+  city TEXT NOT NULL,
+  experience INTEGER DEFAULT 0,
+  profile_url TEXT,
+  motivation TEXT,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected')),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- RLS
+ALTER TABLE applications ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "anyone_can_apply" ON applications FOR INSERT WITH CHECK (true);
+CREATE POLICY "admin_manages_applications" ON applications FOR ALL
+  USING (auth.email() = 'karaivanovtodor668@gmail.com');
+
 -- RLS: Row Level Security
 ALTER TABLE doctors ENABLE ROW LEVEL SECURITY;
 ALTER TABLE time_slots ENABLE ROW LEVEL SECURITY;

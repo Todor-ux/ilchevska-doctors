@@ -213,8 +213,10 @@
     }
     .badge.green, .badge.confirmed, .badge.completed { background: #dcfce7; color: #166534; }
     .badge.red, .badge.cancelled { background: #fee2e2; color: #991b1b; }
-    .badge.pending { background: #fef9c3; color: #854d0e; }
+    .badge.pending { background: #fff3cd; color: #856404; }
     .badge.blue { background: #dbeafe; color: #1d4ed8; }
+    .badge.approved { background: #d4edda; color: #155724; }
+    .badge.rejected { background: #f8d7da; color: #721c24; }
 
     /* Filter bar */
     .filter-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
@@ -417,6 +419,7 @@
       <button class="sidebar-link" data-tab="bookings" onclick="loadTab('bookings')">
         <span class="nav-icon">📋</span> Резервации
       </button>
+      <a class="sidebar-link" data-tab="applications" onclick="loadTab('applications')">📋 Кандидатури</a>
     </div>
     <div class="sidebar-footer">
       <button class="btn-logout" onclick="adminLogout()">🚪 Изход</button>
@@ -482,6 +485,30 @@
           <tbody id="allBookingsList">
             <tr class="empty-row"><td colspan="7">Зареждане...</td></tr>
           </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div id="tab-applications" class="tab-content" style="display:none">
+      <div class="tab-header">
+        <h2>Кандидатури от лекари</h2>
+        <div style="display:flex;gap:.5rem;align-items:center">
+          <select id="appStatusFilter" onchange="loadApplications()" style="border:1.5px solid #d0dce8;border-radius:8px;padding:.4rem .7rem;font-size:.85rem;outline:none">
+            <option value="">Всички</option>
+            <option value="pending">Чакащи</option>
+            <option value="approved">Одобрени</option>
+            <option value="rejected">Отказани</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Дата</th><th>Лекар</th><th>Специалност</th><th>Град</th><th>УИН</th><th>Статус</th><th>Действия</th>
+            </tr>
+          </thead>
+          <tbody id="applicationsList"></tbody>
         </table>
       </div>
     </div>
@@ -664,6 +691,7 @@
     document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
     if      (tab === 'doctors')  loadDoctors();
     else if (tab === 'bookings') loadAllBookings();
+    else if (tab === 'applications') loadApplications();
   }
 
   // ── DOCTORS CRUD ──────────────────────────────────────
@@ -911,6 +939,87 @@
 
   function adminPrevWeek() { adminWeekOffset--; loadAdminWeek(); }
   function adminNextWeek() { adminWeekOffset++; loadAdminWeek(); }
+
+  // ── APPLICATIONS ──────────────────────────────────────
+  async function loadApplications() {
+    const statusFilter = document.getElementById('appStatusFilter')?.value || '';
+    let query = db.from('applications').select('*').order('created_at', { ascending: false });
+    if (statusFilter) query = query.eq('status', statusFilter);
+    const { data } = await query;
+    const el = document.getElementById('applicationsList');
+    if (!data?.length) {
+      el.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:#888">Няма кандидатури</td></tr>';
+      return;
+    }
+    el.innerHTML = data.map(a => `
+      <tr>
+        <td>${new Date(a.created_at).toLocaleDateString('bg-BG')}</td>
+        <td><strong>${a.name}</strong><br><small>${a.email}</small><br><small>📞 ${a.phone}</small></td>
+        <td>${a.specialty}</td>
+        <td>${a.city}</td>
+        <td><code>${a.uin}</code></td>
+        <td><span class="badge ${a.status}">${a.status === 'pending' ? 'Чакаща' : a.status === 'approved' ? 'Одобрена' : 'Отказана'}</span></td>
+        <td>
+          <button onclick="viewApplication('${a.id}')" class="btn-small btn-blue">Детайли</button>
+          ${a.status === 'pending' ? `
+            <button onclick="approveApplication('${a.id}','${a.email}','${a.name.replace(/'/g,"\\'")}','${a.specialty}')" class="btn-small btn-green">Одобри</button>
+            <button onclick="rejectApplication('${a.id}','${a.email}','${a.name.replace(/'/g,"\\'")}')\"  class="btn-small btn-red">Откажи</button>
+          ` : ''}
+        </td>
+      </tr>`).join('');
+  }
+
+  async function viewApplication(id) {
+    const { data: a } = await db.from('applications').select('*').eq('id', id).single();
+    if (!a) return;
+    alert(`КАНДИДАТУРА ДЕТАЙЛИ\n\n` +
+      `Лекар: ${a.name}\nСпециалност: ${a.specialty}\nИмейл: ${a.email}\nТелефон: ${a.phone}\n` +
+      `УИН: ${a.uin}\nГрад: ${a.city}\nОпит: ${a.experience} г.\n` +
+      `Профил: ${a.profile_url || '–'}\n\nМотивация:\n${a.motivation || '–'}`);
+  }
+
+  async function approveApplication(id, email, name, specialty) {
+    if (!confirm(`Одобряване на кандидатурата на ${name}?\nЩе изпратим покана за регистрация на ${email}.`)) return;
+
+    // Update status
+    await db.from('applications').update({ status: 'approved' }).eq('id', id);
+
+    // Send invite via Supabase Auth
+    const { error: invErr } = await db.auth.admin?.inviteUserByEmail(email).catch(() => ({ error: null })) || {};
+
+    // Send approval email via EmailJS
+    try {
+      await emailjs.send(EMAILJS_SERVICE_ID, 'template_apply_approved', {
+        to_email:      email,
+        doctor_name:   name,
+        specialty:     specialty,
+        pharmacy_name: PHARMACY_NAME,
+        pharmacy_phone: PHARMACY_PHONE,
+        panel_url:     'https://ilchevska-doctors.onrender.com/doctor-panel.html',
+      });
+    } catch(err) { console.warn('Approval email failed:', err); }
+
+    alert('✓ Кандидатурата е одобрена. Поканата е изпратена на ' + email);
+    loadApplications();
+  }
+
+  async function rejectApplication(id, email, name) {
+    if (!confirm(`Отказване на кандидатурата на ${name}?`)) return;
+
+    await db.from('applications').update({ status: 'rejected' }).eq('id', id);
+
+    try {
+      await emailjs.send(EMAILJS_SERVICE_ID, 'template_apply_rejected', {
+        to_email:      email,
+        doctor_name:   name,
+        pharmacy_name: PHARMACY_NAME,
+        pharmacy_phone: PHARMACY_PHONE,
+      });
+    } catch(err) { console.warn('Rejection email failed:', err); }
+
+    alert('Кандидатурата е отказана.');
+    loadApplications();
+  }
 </script>
 </body>
 </html>
