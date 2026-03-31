@@ -743,12 +743,12 @@
     document.getElementById('dSpec').value          = d.specialty     || '';
     document.getElementById('dPrice').value         = d.price         || '';
     document.getElementById('dDuration').value      = d.duration      || 30;
-    document.getElementById('dExp').value           = d.experience    || '';
+    document.getElementById('dExp').value           = d.experience_years || '';
     document.getElementById('dDescription').value   = d.description   || '';
-    document.getElementById('dLangs').value         = (d.languages||[]).join(', ');
-    document.getElementById('dTags').value          = (d.tags||[]).join(', ');
+    document.getElementById('dLangs').value         = Array.isArray(d.languages) ? d.languages.join(', ') : (d.languages || '');
+    document.getElementById('dTags').value          = Array.isArray(d.tags)      ? d.tags.join(', ')      : (d.tags      || '');
     document.getElementById('dPhoto').value         = d.photo_url     || '';
-    document.getElementById('dColor').value         = d.color         || '#1d4e89';
+    document.getElementById('dColor').value         = d.avatar_color  || '#1d4e89';
     document.getElementById('dInitials').value      = d.initials      || '';
     document.getElementById('dAvail').checked       = d.is_available;
     document.getElementById('doctorFormModal').style.display = 'flex';
@@ -758,15 +758,19 @@
     e.preventDefault();
     const id = document.getElementById('doctorFormId').value;
     const payload = {
-      name:         document.getElementById('dName').value.trim(),
-      email:        document.getElementById('dEmail').value.trim() || null,
-      specialty:    document.getElementById('dSpec').value.trim(),
-      price:        parseInt(document.getElementById('dPrice').value),
-      duration:     parseInt(document.getElementById('dDuration').value) || 30,
-      description:  document.getElementById('dDescription').value.trim(),
-      languages:    document.getElementById('dLangs').value.split(',').map(l=>l.trim()).filter(Boolean),
-      photo_url:    document.getElementById('dPhoto').value.trim()     || null,
-      is_available: document.getElementById('dAvail').checked,
+      name:             document.getElementById('dName').value.trim(),
+      email:            document.getElementById('dEmail').value.trim()       || null,
+      specialty:        document.getElementById('dSpec').value.trim(),
+      price:            parseInt(document.getElementById('dPrice').value),
+      duration:         parseInt(document.getElementById('dDuration').value) || 30,
+      description:      document.getElementById('dDescription').value.trim(),
+      languages:        document.getElementById('dLangs').value.trim()       || 'Български',
+      tags:             document.getElementById('dTags').value.trim()        || null,
+      photo_url:        document.getElementById('dPhoto').value.trim()       || null,
+      is_available:     document.getElementById('dAvail').checked,
+      avatar_color:     document.getElementById('dColor').value              || '#1d4e89',
+      initials:         document.getElementById('dInitials').value.trim()    || null,
+      experience_years: parseInt(document.getElementById('dExp').value)      || 0,
     };
 
     let error;
