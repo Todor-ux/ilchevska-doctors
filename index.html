@@ -805,7 +805,7 @@
     <p>
       📍 ул. Тракия 18, кв. Устово, Смолян<br>
       📞 <a href="tel:030180836">0301 808 36</a><br>
-      ✉ <a href="mailto:todor@ilchevska.bg">todor@ilchevska.bg</a>
+      ✉ <a href="/cdn-cgi/l/email-protection#c5b1aaa1aab785aca9a6ada0b3b6aea4eba7a2"><span class="__cf_email__" data-cfemail="e69289828994a68f8a858e8390958d87c88481">[email&#160;protected]</span></a>
     </p>
     <hr class="footer-divider">
     <p class="footer-copy">&copy; 2025 Ilchevska Pharmacy. Всички права запазени.</p>
@@ -818,7 +818,7 @@
 </footer>
 
 <!-- ── SCRIPTS ──────────────────────────────────────────────── -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="supabase-config.js"></script>
 <script>
@@ -956,13 +956,17 @@
     selectedDate = null; selectedSlot = null; currentMonthSlots = {};
     clearPending();
     populateModalInfo();
-    await loadReviews(doctorId);
-    const now = new Date(); calYear = now.getFullYear(); calMonth = now.getMonth();
-    await loadMonthSlots();
-    renderCal();
     resetBookingForm();
     document.getElementById('doctorModal').classList.add('show');
     document.body.style.overflow = 'hidden';
+    try {
+      await loadReviews(doctorId);
+      const now = new Date(); calYear = now.getFullYear(); calMonth = now.getMonth();
+      await loadMonthSlots();
+      renderCal();
+    } catch(e) {
+      console.error('Modal load error:', e);
+    }
   }
 
   function closeModal() {
@@ -1243,8 +1247,4 @@
     if (d.photo_url) {
       return `<div class="avatar" style="width:${size}px;height:${size}px;border-radius:50%;overflow:hidden;border:3px solid var(--accent)"><img src="${escHtml(d.photo_url)}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.innerHTML='${escHtml(ini)}'"></div>`;
     }
-    return `<div class="avatar" style="width:${size}px;height:${size}px;line-height:${size}px;border-radius:50%;background:${escHtml(col)};color:#fff;font-size:${size*.3}px;font-weight:700;text-align:center;border:3px solid var(--accent)">${escHtml(ini)}</div>`;
-  }
-</script>
-</body>
-</html>
+    return `<div class="avatar" style="width:${size}
