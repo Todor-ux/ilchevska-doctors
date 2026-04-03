@@ -3,7 +3,7 @@
 // ====================================================
 
 const SUPABASE_URL  = 'https://ikyrlgrmbboesgcpwbhi.supabase.co';
-const SUPABASE_ANON = 'sb_publishable_PWKMYGll_R2ttp50WfXnLA_A5hiRbH_';
+const SUPABASE_ANON_KEY = 'sb_publishable_PWKMYGll_R2ttp50WfXnLA_A5hiRbH_';
 
 // EmailJS
 const EMAILJS_PUBLIC_KEY       = 'ez5Sq5tyq4SOohyKl';
@@ -21,5 +21,5 @@ const PHARMACY_ADDR  = 'ул. Тракия 18, кв. Устово, Смолян'
 
 // Supabase клиент (зарежда се след supabase CDN script)
 function initSupabase() {
-  return supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+  return supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 }
