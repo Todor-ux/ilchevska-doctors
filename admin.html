@@ -377,6 +377,89 @@
     .modal-header h2 { font-size: 1.1rem; font-weight: 800; margin: 0; }
     .modal-close-btn { background: rgba(255,255,255,0.15); border: none; color: #fff; width: 32px; height: 32px; border-radius: 50%; font-size: 1rem; cursor: pointer; transition: background .2s; }
     .modal-close-btn:hover { background: rgba(255,255,255,0.28); }
+
+    /* ── MOBILE BOTTOM NAV ───────────────────────────── */
+    .bottom-nav {
+      display: none;
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: var(--sidebar-bg);
+      z-index: 100;
+      border-top: 1px solid rgba(255,255,255,0.12);
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    .bottom-nav-inner { display: flex; }
+    .bottom-nav-btn {
+      flex: 1;
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.55);
+      padding: 10px 4px 8px;
+      font-size: 0.58rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      min-height: 56px;
+      letter-spacing: 0.02em;
+      transition: color 0.15s;
+      text-decoration: none;
+    }
+    .bottom-nav-btn .bn-icon { font-size: 1.25rem; line-height: 1; }
+    .bottom-nav-btn.active { color: var(--accent-light); }
+    .bottom-nav-btn:active { opacity: 0.7; }
+
+    /* ── MOBILE ──────────────────────────────────────── */
+    @media (max-width: 700px) {
+      .sidebar { display: none; }
+      .bottom-nav { display: block; }
+      .main-content { margin-left: 0; padding: 16px 14px 80px; }
+
+      /* Login */
+      .login-card { padding: 32px 22px; }
+
+      /* Tab header */
+      .tab-header { margin-bottom: 14px; }
+      .tab-header h2 { font-size: 1.1rem; }
+      .btn-add { min-height: 44px; padding: 10px 18px; font-size: 0.9rem; }
+
+      /* Tables — horizontal scroll (already .table-wrap) */
+      table { font-size: 0.82rem; }
+      th, td { padding: 10px 10px; }
+      .btn-small { min-height: 38px; padding: 7px 12px; font-size: 0.8rem; }
+
+      /* Modal bottom sheet */
+      .modal-overlay { padding: 0; display: flex !important; align-items: flex-end; }
+      .modal-box {
+        border-radius: 20px 20px 0 0;
+        max-width: 100%;
+        margin: 0;
+        max-height: 92vh;
+        animation: slideUp 0.3s ease;
+      }
+      @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+      .modal-title { font-size: 1rem; }
+
+      /* Form rows */
+      .form-row { flex-direction: column; }
+      .form-row .form-group { min-width: unset; }
+      .form-group input,
+      .form-group select,
+      .form-group textarea { min-height: 46px; font-size: 0.95rem; padding: 11px 12px; }
+      .btn-primary, .btn-save { min-height: 50px; font-size: 1rem; }
+      .btn-cancel { min-height: 46px; }
+      .modal-footer { flex-direction: column-reverse; }
+      .modal-footer button { width: 100%; }
+
+      /* Filter bar */
+      .filter-bar { gap: 8px; }
+      .filter-bar select { min-height: 44px; font-size: 0.9rem; width: 100%; }
+
+      /* Weekly calendar */
+      .wcal-grid { min-width: 480px; }
+    }
   </style>
 </head>
 <body>
@@ -429,6 +512,24 @@
     </div>
     <div class="sidebar-footer">
       <button class="btn-logout" onclick="adminLogout()">🚪 Изход</button>
+    </div>
+  </nav>
+
+  <!-- Mobile bottom nav -->
+  <nav class="bottom-nav">
+    <div class="bottom-nav-inner">
+      <button class="bottom-nav-btn" data-tab="doctors" onclick="loadTab('doctors')">
+        <span class="bn-icon">👨‍⚕️</span>Лекари
+      </button>
+      <button class="bottom-nav-btn" data-tab="bookings" onclick="loadTab('bookings')">
+        <span class="bn-icon">📋</span>Резервации
+      </button>
+      <button class="bottom-nav-btn" data-tab="reviews" onclick="loadTab('reviews')">
+        <span class="bn-icon">⭐</span>Отзиви
+      </button>
+      <button class="bottom-nav-btn" onclick="adminLogout()">
+        <span class="bn-icon">🚪</span>Изход
+      </button>
     </div>
   </nav>
 
@@ -750,9 +851,9 @@
 
   function loadTab(tab) {
     document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
-    document.querySelectorAll('.sidebar-link').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.sidebar-link, .bottom-nav-btn').forEach(el => el.classList.remove('active'));
     document.getElementById('tab-' + tab).style.display = 'block';
-    document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+    document.querySelectorAll(`[data-tab="${tab}"]`).forEach(el => el.classList.add('active'));
     if      (tab === 'doctors')  loadDoctors();
     else if (tab === 'bookings') loadAllBookings();
     else if (tab === 'reviews')  loadAllReviews();

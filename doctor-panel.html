@@ -308,6 +308,83 @@
     .leg-dot.free    { background:#2e7d32; }
     .leg-dot.booked  { background:#c62828; }
     .leg-dot.inactive{ background:#e0e0e0; }
+
+    /* ── MOBILE BOTTOM NAV ───────────────────────────── */
+    .bottom-nav {
+      display: none;
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: var(--sidebar-bg);
+      z-index: 100;
+      border-top: 1px solid rgba(255,255,255,0.12);
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+    .bottom-nav-inner {
+      display: flex;
+    }
+    .bottom-nav-btn {
+      flex: 1;
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.55);
+      padding: 10px 4px 8px;
+      font-size: 0.58rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      min-height: 56px;
+      letter-spacing: 0.02em;
+      transition: color 0.15s;
+    }
+    .bottom-nav-btn .bn-icon { font-size: 1.25rem; line-height: 1; }
+    .bottom-nav-btn.active { color: var(--accent-light); }
+    .bottom-nav-btn:active { opacity: 0.7; }
+
+    /* ── MOBILE ──────────────────────────────────────── */
+    @media (max-width: 700px) {
+      .sidebar { display: none; }
+      .bottom-nav { display: block; }
+      .main-content { margin-left: 0; padding: 16px 14px 80px; min-height: unset; }
+
+      /* Login card */
+      .login-card { padding: 32px 24px; }
+
+      /* Tab header */
+      .tab-header { margin-bottom: 16px; }
+      .tab-header h2 { font-size: 1.15rem; }
+
+      /* Panel card */
+      .panel-card { padding: 16px 14px; }
+
+      /* Booking items */
+      .booking-actions { gap: 6px; }
+      .btn-small { min-height: 40px; padding: 8px 14px; font-size: 0.85rem; }
+
+      /* Form rows stack vertically */
+      .form-row { flex-direction: column; gap: 0; }
+      .form-row .form-group { min-width: unset; }
+      .form-row .btn-primary { width: 100%; margin-top: 4px; }
+
+      /* Inputs & buttons */
+      .form-group input,
+      .form-group select,
+      .form-group textarea { min-height: 46px; font-size: 0.95rem; padding: 11px 13px; }
+      .btn-primary { min-height: 50px; font-size: 1rem; }
+
+      /* Slot pills */
+      .slot-pill { padding: 9px 14px; font-size: 0.88rem; }
+
+      /* Weekly calendar scroll */
+      .wcal-grid { min-width: 480px; }
+      .panel-card { overflow-x: auto; }
+
+      /* Stats grid 2 cols */
+      .stats-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+      .stat-val { font-size: 1.6rem; }
+    }
   </style>
 </head>
 <body>
@@ -366,6 +443,27 @@
     </div>
     <div class="sidebar-footer">
       <button class="btn-logout" onclick="logout()">🚪 Изход</button>
+    </div>
+  </nav>
+
+  <!-- Mobile bottom nav -->
+  <nav class="bottom-nav">
+    <div class="bottom-nav-inner">
+      <button class="bottom-nav-btn" data-tab="today" onclick="showTab('today')">
+        <span class="bn-icon">📅</span>Днес
+      </button>
+      <button class="bottom-nav-btn" data-tab="week" onclick="showTab('week')">
+        <span class="bn-icon">📆</span>Седмица
+      </button>
+      <button class="bottom-nav-btn" data-tab="slots" onclick="showTab('slots')">
+        <span class="bn-icon">🕐</span>Часове
+      </button>
+      <button class="bottom-nav-btn" data-tab="profile" onclick="showTab('profile')">
+        <span class="bn-icon">👤</span>Профил
+      </button>
+      <button class="bottom-nav-btn" data-tab="stats" onclick="showTab('stats')">
+        <span class="bn-icon">📊</span>Статистики
+      </button>
     </div>
   </nav>
 
@@ -587,9 +685,9 @@
 
   function showTab(tab) {
     document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
-    document.querySelectorAll('.sidebar-link').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.sidebar-link, .bottom-nav-btn').forEach(el => el.classList.remove('active'));
     document.getElementById('tab-' + tab).style.display = 'block';
-    document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+    document.querySelectorAll(`[data-tab="${tab}"]`).forEach(el => el.classList.add('active'));
     if      (tab === 'today')   loadTodayBookings();
     else if (tab === 'week')    loadWeekBookings();
     else if (tab === 'slots')   loadWeekCalendar();
