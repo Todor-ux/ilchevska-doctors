@@ -692,7 +692,7 @@
 <div class="main-content">
   <div id="loadingState">
     <div class="spinner"></div>
-    <p id="loadingStatus" style="color:var(--muted)">Зареждане на специалисти...</p>
+    <p style="color:var(--muted)">Зареждане на специалисти...</p>
   </div>
   <div id="doctorsGrid" class="doctors-grid" style="display:none"></div>
 </div>
@@ -818,22 +818,10 @@
 </footer>
 
 <!-- ── SCRIPTS ──────────────────────────────────────────────── -->
-<script src="supabase.min.js" onerror="document.getElementById('loadingStatus').textContent='ГРЕШКА: supabase.min.js не се зареди'"></script>
-<script src="email.min.js" onerror="document.getElementById('loadingStatus').textContent='ГРЕШКА: email.min.js не се зареди'"></script>
-<script src="supabase-config.js" onerror="document.getElementById('loadingStatus').textContent='ГРЕШКА: supabase-config.js не се зареди'"></script>
+<script src="supabase.min.js"></script>
+<script src="email.min.js"></script>
+<script src="supabase-config.js"></script>
 <script>
-  try {
-    if (typeof supabase === 'undefined') throw new Error('supabase library not loaded');
-    if (typeof emailjs === 'undefined') throw new Error('emailjs library not loaded');
-    document.getElementById('loadingStatus').textContent = '✓ Библиотеките са заредени...';
-  } catch(libErr) {
-    document.getElementById('loadingStatus').textContent = 'ГРЕШКА при библиотека: ' + libErr.message;
-  }
-</script>
-<script>
-  console.log('SCRIPT LOADED');
-  var st = document.getElementById('loadingStatus');
-  if (st) st.textContent = '✓ Script зареден. Изчакване на DOM...';
   let db;
   let allDoctors = [];
   let nextSlots = {};
@@ -849,16 +837,11 @@
   const DAYS_BG = ['Нед','Пон','Вт','Ср','Чет','Пет','Съб'];
 
   document.addEventListener('DOMContentLoaded', async () => {
-    console.log('DOMContentLoaded fired');
-    document.getElementById('loadingStatus').textContent = '✓ DOM готов. Свързване към Supabase...';
     try {
       db = initSupabase();
-      console.log('Supabase client created');
-      document.getElementById('loadingStatus').textContent = '✓ Supabase клиент създаден. Зареждане на лекари...';
       emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
       await loadDoctors();
     } catch(err) {
-      console.error('INIT ERROR:', err.message);
       document.getElementById('loadingState').style.display = 'none';
       document.getElementById('doctorsGrid').style.display = 'grid';
       document.getElementById('doctorsGrid').innerHTML = `<div class="no-results"><h3>Грешка при инициализация</h3><p>${err.message}</p></div>`;
@@ -869,8 +852,6 @@
   async function loadDoctors() {
     document.getElementById('loadingState').style.display = 'flex';
     document.getElementById('doctorsGrid').style.display = 'none';
-    console.log('loadDoctors: fetching from Supabase...');
-    document.getElementById('loadingStatus').textContent = '⏳ Запитване към базата данни...';
     try {
       const timeout = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Supabase не отговаря (timeout 10s). Проверете интернет връзката или опитайте по-късно.')), 10000)
@@ -887,14 +868,12 @@
         ]),
         timeout
       ]);
-      console.log('loadDoctors: response received, doctors:', doctors?.length, 'error:', error);
       if (error) throw error;
       allDoctors = doctors || [];
       nextSlots = {};
       (slots || []).forEach(s => { if (!nextSlots[s.doctor_id]) nextSlots[s.doctor_id] = s; });
       applyFilters();
     } catch(e) {
-      console.error('loadDoctors error:', e.message);
       document.getElementById('doctorsGrid').innerHTML = `<div class="no-results"><h3>Грешка при зареждане</h3><p>${e.message}</p><button onclick="loadDoctors()">Опитай пак</button></div>`;
       document.getElementById('doctorsGrid').style.display = 'grid';
     } finally {
@@ -1280,4 +1259,9 @@
     if (d.photo_url) {
       return `<div class="avatar" style="width:${size}px;height:${size}px;border-radius:50%;overflow:hidden;border:3px solid var(--accent)"><img src="${escHtml(d.photo_url)}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.innerHTML='${escHtml(ini)}'"></div>`;
     }
-    return `<div class="avatar" style="width:${size}
+    return `<div class="avatar" style="width:${size}px;height:${size}px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:${col};color:#fff;font-weight:700;font-size:${Math.round(size*0.4)}px">${ini}</div>`;
+  }
+
+</script>
+</body>
+</html>
