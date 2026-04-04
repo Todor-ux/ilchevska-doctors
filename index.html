@@ -894,7 +894,7 @@
 
     let list = allDoctors.filter(d => {
       if (q && !d.name.toLowerCase().includes(q) && !d.specialty.toLowerCase().includes(q) &&
-          !(d.tags||[]).some(t => t.toLowerCase().includes(q)) &&
+          !(Array.isArray(d.tags) ? d.tags : []).some(t => t.toLowerCase().includes(q)) &&
           !(d.description||'').toLowerCase().includes(q)) return false;
       if (spec && d.specialty !== spec) return false;
       if (d.price < pMin || d.price > pMax) return false;
@@ -1005,8 +1005,10 @@
         <div class="cv-text"><strong>${escHtml(e.title||'')}</strong><span>${escHtml(e.sub||'')}</span></div>
       </div>`
     ).join('') || '<p style="color:var(--muted)">Не е въведено</p>';
-    document.getElementById('mTags').innerHTML = (d.tags||[]).map(t=>`<span class="tag">${escHtml(t)}</span>`).join('') || '<p style="color:var(--muted)">Не е въведено</p>';
-    document.getElementById('mLangs').innerHTML = (d.languages||[]).map(l=>`<div class="lang-item">🗣 ${escHtml(l)}</div>`).join('') || '<p style="color:var(--muted)">Не е въведено</p>';
+    const tags = Array.isArray(d.tags) ? d.tags : (d.tags ? String(d.tags).split(',').map(s=>s.trim()).filter(Boolean) : []);
+    const langs = Array.isArray(d.languages) ? d.languages : (d.languages ? String(d.languages).split(',').map(s=>s.trim()).filter(Boolean) : []);
+    document.getElementById('mTags').innerHTML = tags.map(t=>`<span class="tag">${escHtml(t)}</span>`).join('') || '<p style="color:var(--muted)">Не е въведено</p>';
+    document.getElementById('mLangs').innerHTML = langs.map(l=>`<div class="lang-item">🗣 ${escHtml(l)}</div>`).join('') || '<p style="color:var(--muted)">Не е въведено</p>';
     document.getElementById('bkPrice').textContent = d.price + ' лв.';
     document.getElementById('bkDuration').textContent = 'Продължителност: ' + (d.duration||30) + ' мин.';
   }
