@@ -535,6 +535,13 @@
           <input id="dEmail" type="email" placeholder="doctor@example.com">
         </div>
       </div>
+      <div class="form-row" id="dPasswordRow">
+        <div class="form-group">
+          <label>Парола за панела</label>
+          <input id="dPassword" type="password" placeholder="Минимум 6 символа" minlength="6" autocomplete="new-password">
+          <small style="color:var(--muted)">Попълни само при добавяне на нов лекар или смяна на парола</small>
+        </div>
+      </div>
       <div class="form-row">
         <div class="form-group">
           <label>Специалност *</label>
@@ -765,15 +772,18 @@
     document.getElementById('dColor').value         = d.avatar_color  || '#1d4e89';
     document.getElementById('dInitials').value      = d.initials      || '';
     document.getElementById('dAvail').checked       = d.is_available;
+    document.getElementById('dPassword').value      = '';
     document.getElementById('doctorFormModal').style.display = 'flex';
   }
 
   async function saveDoctor(e) {
     e.preventDefault();
     const id = document.getElementById('doctorFormId').value;
+    const email = document.getElementById('dEmail').value.trim() || null;
+    const password = document.getElementById('dPassword').value;
     const payload = {
       name: document.getElementById('dName').value.trim(),
-      email: document.getElementById('dEmail').value.trim() || null,
+      email,
       specialty: document.getElementById('dSpec').value.trim(),
       price: parseInt(document.getElementById('dPrice').value),
       duration: parseInt(document.getElementById('dDuration').value) || 30,
@@ -787,6 +797,16 @@
       is_available: document.getElementById('dAvail').checked,
     };
 
+    // Create/update Auth account if email + password provided
+    if (email && password && password.length >= 6) {
+      const tempClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      const { error: authErr } = await tempClient.auth.signUp({ email, password });
+      if (authErr && !authErr.message.includes('already registered')) {
+        alert('Грешка при създаване на акаунт: ' + authErr.message);
+        return;
+      }
+    }
+
     let error;
     if (id) {
       ({ error } = await db.from('doctors').update(payload).eq('id', id));
@@ -794,6 +814,7 @@
       ({ error } = await db.from('doctors').insert(payload));
     }
     if (error) { alert('Грешка: ' + error.message); return; }
+    document.getElementById('dPassword').value = '';
     document.getElementById('doctorFormModal').style.display = 'none';
     loadDoctors();
   }
