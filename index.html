@@ -174,6 +174,36 @@
       transition: var(--transition);
     }
     .btn-reset:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-favs {
+      background: transparent;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 7px 14px;
+      font-size: 0.82rem;
+      color: var(--text-light);
+      cursor: pointer;
+      transition: var(--transition);
+    }
+    .btn-favs:hover { border-color: #e53e3e; color: #e53e3e; }
+    .btn-favs.active { background: #fff0f0; border-color: #e53e3e; color: #e53e3e; font-weight: 700; }
+    .fav-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(255,255,255,0.85);
+      border: none;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      font-size: 1.1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.15s, background 0.15s;
+      z-index: 2;
+    }
+    .fav-btn:hover { transform: scale(1.2); background: #fff; }
     #resultsCount {
       margin-left: auto;
       font-size: 0.82rem;
@@ -222,6 +252,7 @@
       cursor: pointer;
       display: flex;
       flex-direction: column;
+      position: relative;
     }
     .doc-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); }
 
@@ -684,6 +715,7 @@
       <option value="avail">Наличност</option>
     </select>
 
+    <button class="btn-favs" id="btnFavs" onclick="toggleFavsFilter()">❤️ Любими</button>
     <button class="btn-reset" onclick="resetFilters()">↺ Нулирай</button>
     <div id="resultsCount"></div>
   </div>
@@ -913,6 +945,26 @@
     }
   }
 
+  // ── FAVORITES ─────────────────────────────────────────
+  let favorites = JSON.parse(localStorage.getItem('favDoctors') || '[]');
+  let showFavsOnly = false;
+
+  function toggleFav(id) {
+    if (favorites.includes(id)) {
+      favorites = favorites.filter(f => f !== id);
+    } else {
+      favorites.push(id);
+    }
+    localStorage.setItem('favDoctors', JSON.stringify(favorites));
+    applyFilters();
+  }
+
+  function toggleFavsFilter() {
+    showFavsOnly = !showFavsOnly;
+    document.getElementById('btnFavs').classList.toggle('active', showFavsOnly);
+    applyFilters();
+  }
+
   // ── FILTER + SORT ─────────────────────────────────────
   function applyFilters() {
     const q      = (document.getElementById('searchInput').value || '').toLowerCase();
@@ -924,6 +976,7 @@
     const sort   = document.getElementById('fSort').value;
 
     let list = allDoctors.filter(d => {
+      if (showFavsOnly && !favorites.includes(d.id)) return false;
       if (q && !d.name.toLowerCase().includes(q) && !d.specialty.toLowerCase().includes(q) &&
           !(Array.isArray(d.tags) ? d.tags : []).some(t => t.toLowerCase().includes(q)) &&
           !(d.description||'').toLowerCase().includes(q)) return false;
@@ -958,6 +1011,8 @@
     ['fSpec','fAvail'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('fRating').value = '0';
     document.getElementById('fSort').value = 'rating';
+    showFavsOnly = false;
+    document.getElementById('btnFavs').classList.remove('active');
     applyFilters();
   }
 
@@ -975,7 +1030,9 @@
       const nextText = slot
         ? (isToday ? 'Днес, ' + slot.time.slice(0,5) : fmtDate(slot.date) + ' ' + slot.time.slice(0,5))
         : 'Без свободни часове';
+      const isFav = favorites.includes(d.id);
       return `<div class="doc-card" onclick="openModal('${d.id}')">
+        <button class="fav-btn" onclick="event.stopPropagation(); toggleFav('${d.id}')" title="${isFav?'Премахни от любими':'Добави в любими'}">${isFav?'❤️':'🤍'}</button>
         <div class="card-top">
           <div class="avail-dot ${isToday?'online':'offline'}" title="${isToday?'Наличен днес':'Не е наличен днес'}"></div>
           ${avatarEl(d, 76)}
