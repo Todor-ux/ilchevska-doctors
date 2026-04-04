@@ -526,7 +526,12 @@
       return;
     }
     await loadDoctorProfile(data.user.email);
-    if (!currentDoctor || !currentDoctor.is_approved) {
+    if (!currentDoctor) {
+      await db.auth.signOut();
+      errEl.textContent = 'Не е намерен лекар с имейл: ' + data.user.email + '. Проверете дали имейлът съвпада с този в базата данни.';
+      return;
+    }
+    if (!currentDoctor.is_approved) {
       await db.auth.signOut();
       errEl.textContent = 'Вашият акаунт не е одобрен от администратора.';
       return;
