@@ -573,7 +573,7 @@
           </select>
         </div>
         <div class="form-group">
-          <label>Цена (лв.) *</label>
+          <label>Цена (евро) *</label>
           <input id="dPrice" type="number" min="0" required placeholder="50">
         </div>
         <div class="form-group">
@@ -716,7 +716,7 @@
       <tr>
         <td><strong>${escHtml(d.name)}</strong></td>
         <td>${escHtml(d.specialty)}</td>
-        <td>${d.price} лв.</td>
+        <td>${d.price} евро</td>
         <td>${(d.rating||0).toFixed(1)} ★</td>
         <td><span class="badge ${d.is_available?'green':'red'}">${d.is_available?'Активен':'Неактивен'}</span></td>
         <td style="display:flex;gap:5px;flex-wrap:wrap;">

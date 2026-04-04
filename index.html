@@ -953,7 +953,7 @@
         </div>
         <div class="card-body">
           <div class="stars">${starsHTML(d.rating)}<span>${(d.rating||0).toFixed(1)} (${d.reviews_count||0} отзива)</span></div>
-          <div class="card-price">${d.price} лв. <small>/ консултация</small></div>
+          <div class="card-price">${d.price} евро <small>/ консултация</small></div>
           <div class="next-slot">🕐 <span>Следващ час:</span> ${nextText}</div>
         </div>
         <div class="card-footer"><button class="btn-book" onclick="event.stopPropagation(); openModal('${d.id}')">Резервирай час</button></div>
@@ -1009,7 +1009,7 @@
     const langs = Array.isArray(d.languages) ? d.languages : (d.languages ? String(d.languages).split(',').map(s=>s.trim()).filter(Boolean) : []);
     document.getElementById('mTags').innerHTML = tags.map(t=>`<span class="tag">${escHtml(t)}</span>`).join('') || '<p style="color:var(--muted)">Не е въведено</p>';
     document.getElementById('mLangs').innerHTML = langs.map(l=>`<div class="lang-item">🗣 ${escHtml(l)}</div>`).join('') || '<p style="color:var(--muted)">Не е въведено</p>';
-    document.getElementById('bkPrice').textContent = d.price + ' лв.';
+    document.getElementById('bkPrice').textContent = d.price + ' евро';
     document.getElementById('bkDuration').textContent = 'Продължителност: ' + (d.duration||30) + ' мин.';
   }
 
