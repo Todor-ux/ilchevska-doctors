@@ -822,6 +822,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="supabase-config.js"></script>
 <script>
+  console.log('SCRIPT LOADED');
   let db;
   let allDoctors = [];
   let nextSlots = {};
@@ -837,9 +838,18 @@
   const DAYS_BG = ['Нед','Пон','Вт','Ср','Чет','Пет','Съб'];
 
   document.addEventListener('DOMContentLoaded', async () => {
-    db = initSupabase();
-    emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
-    await loadDoctors();
+    console.log('DOMContentLoaded fired');
+    try {
+      db = initSupabase();
+      console.log('Supabase client created');
+      emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+      await loadDoctors();
+    } catch(err) {
+      console.error('INIT ERROR:', err.message);
+      document.getElementById('loadingState').style.display = 'none';
+      document.getElementById('doctorsGrid').style.display = 'grid';
+      document.getElementById('doctorsGrid').innerHTML = `<div class="no-results"><h3>Грешка при инициализация</h3><p>${err.message}</p></div>`;
+    }
   });
 
   // ── LOAD DOCTORS ──────────────────────────────────────
