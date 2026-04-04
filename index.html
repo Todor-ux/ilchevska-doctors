@@ -692,7 +692,7 @@
 <div class="main-content">
   <div id="loadingState">
     <div class="spinner"></div>
-    <p style="color:var(--muted)">Зареждане на специалисти...</p>
+    <p id="loadingStatus" style="color:var(--muted)">Зареждане на специалисти...</p>
   </div>
   <div id="doctorsGrid" class="doctors-grid" style="display:none"></div>
 </div>
@@ -823,6 +823,7 @@
 <script src="supabase-config.js"></script>
 <script>
   console.log('SCRIPT LOADED');
+  document.getElementById('loadingStatus').textContent = '✓ Script зареден. Изчакване на DOM...';
   let db;
   let allDoctors = [];
   let nextSlots = {};
@@ -839,9 +840,11 @@
 
   document.addEventListener('DOMContentLoaded', async () => {
     console.log('DOMContentLoaded fired');
+    document.getElementById('loadingStatus').textContent = '✓ DOM готов. Свързване към Supabase...';
     try {
       db = initSupabase();
       console.log('Supabase client created');
+      document.getElementById('loadingStatus').textContent = '✓ Supabase клиент създаден. Зареждане на лекари...';
       emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
       await loadDoctors();
     } catch(err) {
@@ -857,6 +860,7 @@
     document.getElementById('loadingState').style.display = 'flex';
     document.getElementById('doctorsGrid').style.display = 'none';
     console.log('loadDoctors: fetching from Supabase...');
+    document.getElementById('loadingStatus').textContent = '⏳ Запитване към базата данни...';
     try {
       const timeout = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Supabase не отговаря (timeout 10s). Проверете интернет връзката или опитайте по-късно.')), 10000)
