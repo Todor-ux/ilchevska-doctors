@@ -247,21 +247,55 @@
     .main-content { max-width: 1280px; margin: 0 auto; padding: 32px 20px 60px; }
 
     /* ── LOADING ─────────────────────────────────────── */
-    #loadingState {
+    #loadingState { display: none; }
+
+    /* ── SKELETON CARDS ─────────────────────────────── */
+    @keyframes shimmer {
+      0%   { background-position: -600px 0; }
+      100% { background-position:  600px 0; }
+    }
+    .skel-block {
+      background: linear-gradient(90deg, #e4eaf1 25%, #f0f4f8 50%, #e4eaf1 75%);
+      background-size: 1200px 100%;
+      animation: shimmer 1.6s infinite linear;
+      border-radius: 6px;
+    }
+    .skeleton-card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .skel-top {
+      background: #dde6f0;
+      padding: 28px 16px 22px;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      padding: 80px 20px;
-      gap: 18px;
+      gap: 10px;
     }
-    .spinner {
-      width: 48px; height: 48px;
-      border: 4px solid var(--border);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
+    .skel-avatar { width: 76px; height: 76px; border-radius: 50%; }
+    .skel-name   { width: 120px; height: 14px; }
+    .skel-spec   { width: 80px; height: 11px; }
+    .skel-body   { padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+    .skel-line   { height: 11px; border-radius: 6px; }
+    .skel-footer { padding: 0 16px 16px; }
+    .skel-btn    { height: 38px; border-radius: var(--radius-sm); }
+
+    /* ── CARD ENTRANCE ANIMATION ────────────────────── */
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(28px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
+    .doc-card {
+      opacity: 0;
+    }
+    .doc-card.visible {
+      animation: cardIn 0.45s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+    }
+
     @keyframes spin { to { transform: rotate(360deg); } }
 
     /* ── DOCTORS GRID ────────────────────────────────── */
@@ -1057,16 +1091,34 @@
       emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
       await loadDoctors();
     } catch(err) {
-      document.getElementById('loadingState').style.display = 'none';
-      document.getElementById('doctorsGrid').style.display = 'grid';
-      document.getElementById('doctorsGrid').innerHTML = `<div class="no-results"><h3>Грешка при инициализация</h3><p>${err.message}</p></div>`;
+      const grid = document.getElementById('doctorsGrid');
+      grid.style.display = 'grid';
+      grid.innerHTML = `<div class="no-results"><h3>Грешка при инициализация</h3><p>${err.message}</p></div>`;
     }
   });
 
   // ── LOAD DOCTORS ──────────────────────────────────────
+  function showSkeletons() {
+    const grid = document.getElementById('doctorsGrid');
+    grid.style.display = 'grid';
+    grid.innerHTML = Array(8).fill(0).map(() => `
+      <div class="skeleton-card">
+        <div class="skel-top">
+          <div class="skel-block skel-avatar"></div>
+          <div class="skel-block skel-name"></div>
+          <div class="skel-block skel-spec"></div>
+        </div>
+        <div class="skel-body">
+          <div class="skel-block skel-line" style="width:70%"></div>
+          <div class="skel-block skel-line" style="width:50%"></div>
+          <div class="skel-block skel-line" style="width:85%"></div>
+        </div>
+        <div class="skel-footer"><div class="skel-block skel-btn"></div></div>
+      </div>`).join('');
+  }
+
   async function loadDoctors() {
-    document.getElementById('loadingState').style.display = 'flex';
-    document.getElementById('doctorsGrid').style.display = 'none';
+    showSkeletons();
     try {
       const timeout = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Supabase не отговаря (timeout 10s). Проверете интернет връзката или опитайте по-късно.')), 10000)
@@ -1090,11 +1142,9 @@
       populateSpecDatalist();
       applyFilters();
     } catch(e) {
-      document.getElementById('doctorsGrid').innerHTML = `<div class="no-results"><h3>Грешка при зареждане</h3><p>${e.message}</p><button onclick="loadDoctors()">Опитай пак</button></div>`;
-      document.getElementById('doctorsGrid').style.display = 'grid';
-    } finally {
-      document.getElementById('loadingState').style.display = 'none';
-      document.getElementById('doctorsGrid').style.display = 'grid';
+      const grid = document.getElementById('doctorsGrid');
+      grid.style.display = 'grid';
+      grid.innerHTML = `<div class="no-results"><h3>Грешка при зареждане</h3><p>${e.message}</p><button onclick="loadDoctors()">Опитай пак</button></div>`;
     }
   }
 
@@ -1189,6 +1239,7 @@
   // ── RENDER GRID ───────────────────────────────────────
   function renderGrid(list) {
     const grid = document.getElementById('doctorsGrid');
+    grid.style.display = 'grid';
     document.getElementById('resultsCount').textContent = list.length + ' специалисти';
     if (!list.length) {
       grid.innerHTML = '<div class="no-results"><h3>Няма намерени специалисти</h3><p>Опитайте с по-широки критерии.</p></div>';
@@ -1219,6 +1270,14 @@
         <div class="card-footer"><button class="btn-book" onclick="event.stopPropagation(); openModal('${d.id}')">Резервирай час</button></div>
       </div>`;
     }).join('');
+
+    // Staggered entrance animation
+    requestAnimationFrame(() => {
+      grid.querySelectorAll('.doc-card').forEach((card, i) => {
+        card.style.animationDelay = `${i * 55}ms`;
+        card.classList.add('visible');
+      });
+    });
   }
 
   // ── DOCTOR MODAL ──────────────────────────────────────
