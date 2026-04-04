@@ -846,22 +846,31 @@
   async function loadDoctors() {
     document.getElementById('loadingState').style.display = 'flex';
     document.getElementById('doctorsGrid').style.display = 'none';
+    console.log('loadDoctors: fetching from Supabase...');
     try {
-      const [{ data: doctors, error }, { data: slots }] = await Promise.all([
-        db.from('doctors').select('*').eq('is_available', true).order('rating', { ascending: false }),
-        db.from('time_slots')
-          .select('doctor_id, date, time')
-          .eq('is_booked', false)
-          .eq('is_pending', false)
-          .gte('date', today())
-          .order('date').order('time')
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Supabase не отговаря (timeout 10s). Проверете интернет връзката или опитайте по-късно.')), 10000)
+      );
+      const [{ data: doctors, error }, { data: slots }] = await Promise.race([
+        Promise.all([
+          db.from('doctors').select('*').eq('is_available', true).order('rating', { ascending: false }),
+          db.from('time_slots')
+            .select('doctor_id, date, time')
+            .eq('is_booked', false)
+            .eq('is_pending', false)
+            .gte('date', today())
+            .order('date').order('time')
+        ]),
+        timeout
       ]);
+      console.log('loadDoctors: response received, doctors:', doctors?.length, 'error:', error);
       if (error) throw error;
       allDoctors = doctors || [];
       nextSlots = {};
       (slots || []).forEach(s => { if (!nextSlots[s.doctor_id]) nextSlots[s.doctor_id] = s; });
       applyFilters();
     } catch(e) {
+      console.error('loadDoctors error:', e.message);
       document.getElementById('doctorsGrid').innerHTML = `<div class="no-results"><h3>Грешка при зареждане</h3><p>${e.message}</p><button onclick="loadDoctors()">Опитай пак</button></div>`;
       document.getElementById('doctorsGrid').style.display = 'grid';
     } finally {
