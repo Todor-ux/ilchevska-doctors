@@ -736,6 +736,23 @@
         <div class="modal-section">
           <h4>Отзиви на пациенти</h4>
           <div id="mReviews"></div>
+          <div id="reviewForm" style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px;">
+            <div style="font-weight:700;font-size:0.9rem;margin-bottom:10px;">Оставете отзив</div>
+            <div style="margin-bottom:8px;">
+              <div style="font-size:0.82rem;color:var(--muted);margin-bottom:4px;">Оценка:</div>
+              <div id="starPicker" style="display:flex;gap:4px;font-size:1.5rem;cursor:pointer;">
+                <span onclick="setRating(1)" data-star="1">☆</span>
+                <span onclick="setRating(2)" data-star="2">☆</span>
+                <span onclick="setRating(3)" data-star="3">☆</span>
+                <span onclick="setRating(4)" data-star="4">☆</span>
+                <span onclick="setRating(5)" data-star="5">☆</span>
+              </div>
+            </div>
+            <input id="reviewName" type="text" placeholder="Вашето име" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;margin-bottom:8px;font-size:0.85rem;">
+            <textarea id="reviewComment" placeholder="Вашият коментар..." rows="3" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;font-size:0.85rem;resize:vertical;"></textarea>
+            <button onclick="submitReview()" style="margin-top:8px;padding:8px 18px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;">Изпрати отзив</button>
+            <div id="reviewMsg" style="margin-top:6px;font-size:0.85rem;"></div>
+          </div>
         </div>
       </div>
 
@@ -1025,6 +1042,44 @@
       <div class="stars">${'★'.repeat(r.rating||0)}${'☆'.repeat(5-(r.rating||0))}</div>
       <p class="review-text">${escHtml(r.comment||'')}</p>
     </div>`).join('');
+  }
+
+  let selectedRating = 0;
+  function setRating(val) {
+    selectedRating = val;
+    document.querySelectorAll('#starPicker span').forEach(s => {
+      s.textContent = parseInt(s.dataset.star) <= val ? '★' : '☆';
+      s.style.color = parseInt(s.dataset.star) <= val ? '#f59e0b' : '';
+    });
+  }
+
+  async function submitReview() {
+    const name    = document.getElementById('reviewName').value.trim();
+    const comment = document.getElementById('reviewComment').value.trim();
+    const msgEl   = document.getElementById('reviewMsg');
+    if (!name)           { msgEl.style.color='red'; msgEl.textContent='Моля въведете вашето име.'; return; }
+    if (!selectedRating) { msgEl.style.color='red'; msgEl.textContent='Моля изберете оценка.'; return; }
+    const { error } = await db.from('reviews').insert({
+      doctor_id:    currentDoctor.id,
+      patient_name: name,
+      rating:       selectedRating,
+      comment:      comment || null
+    });
+    if (error) { msgEl.style.color='red'; msgEl.textContent='Грешка: ' + error.message; return; }
+
+    // Recalculate doctor rating
+    const { data: allR } = await db.from('reviews').select('rating').eq('doctor_id', currentDoctor.id);
+    if (allR?.length) {
+      const avg = allR.reduce((s,r) => s + r.rating, 0) / allR.length;
+      await db.from('doctors').update({ rating: parseFloat(avg.toFixed(1)), reviews_count: allR.length }).eq('id', currentDoctor.id);
+    }
+
+    msgEl.style.color = 'green';
+    msgEl.textContent = '✓ Благодарим за отзива!';
+    document.getElementById('reviewName').value = '';
+    document.getElementById('reviewComment').value = '';
+    setRating(0);
+    await loadReviews(currentDoctor.id);
   }
 
   // ── CALENDAR ──────────────────────────────────────────
