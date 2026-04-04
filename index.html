@@ -678,6 +678,40 @@
     .footer-divider { border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 20px 0; }
     .footer-copy { font-size: 0.78rem; opacity: 0.55; }
 
+    /* ── DRAG HANDLE ────────────────────────────────── */
+    .modal-drag-handle {
+      display: none;
+      width: 40px;
+      height: 4px;
+      background: rgba(255,255,255,0.4);
+      border-radius: 2px;
+      margin: 0 auto 12px;
+    }
+
+    /* ── BACK TO TOP ─────────────────────────────────── */
+    #backToTop {
+      display: none;
+      position: fixed;
+      bottom: 24px;
+      right: 18px;
+      width: 44px;
+      height: 44px;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 50%;
+      font-size: 1.1rem;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(13,45,78,0.28);
+      z-index: 150;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.2s, transform 0.2s;
+    }
+    #backToTop.show { display: flex; }
+    #backToTop:hover { background: var(--primary-light); transform: translateY(-2px); }
+    #backToTop:active { transform: scale(0.9); }
+
     /* ── MOBILE FILTER TOGGLE BUTTON ────────────────── */
     .mobile-filter-btn {
       display: none;
@@ -820,6 +854,22 @@
 
       /* Footer */
       footer { padding: 28px 16px; }
+
+      /* Faster card animation on mobile */
+      .doc-card.visible { animation-duration: 0.32s; }
+
+      /* Touch active feedback */
+      .btn-book:active, .btn-submit:active, .btn-success-close:active { opacity: 0.75; transform: scale(0.98); }
+      .doc-card:active { transform: scale(0.985); }
+
+      /* Drag handle on modal */
+      .modal-drag-handle { display: block; }
+
+      /* Smaller skeleton translateY on mobile */
+      @keyframes cardIn {
+        from { opacity: 0; transform: translateY(16px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
     }
   </style>
 </head>
@@ -918,7 +968,8 @@
 
 <!-- ── DOCTOR MODAL ─────────────────────────────────────────── -->
 <div id="doctorModal" class="modal-overlay" onclick="if(event.target===this)closeModal()">
-  <div class="modal-box">
+  <div class="modal-box" id="modalBox">
+    <div class="modal-drag-handle"></div>
     <button class="modal-close" onclick="closeModal()">✕</button>
 
     <!-- Modal Header -->
@@ -1065,6 +1116,8 @@
     </div>
   </div>
 </footer>
+
+<button id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Горе">↑</button>
 
 <!-- ── SCRIPTS ──────────────────────────────────────────────── -->
 <script src="supabase.min.js"></script>
@@ -1305,6 +1358,47 @@
     document.body.style.overflow = '';
     clearPending();
   }
+
+  // ── SWIPE TO CLOSE MODAL (mobile) ─────────────────────
+  (function() {
+    let startY = 0, isDragging = false;
+    const getBox = () => document.getElementById('modalBox');
+    document.addEventListener('touchstart', e => {
+      const box = getBox();
+      if (box && box.contains(e.target)) {
+        startY = e.touches[0].clientY;
+        isDragging = true;
+      }
+    }, { passive: true });
+    document.addEventListener('touchmove', e => {
+      if (!isDragging) return;
+      const dy = e.touches[0].clientY - startY;
+      if (dy > 0) {
+        getBox().style.transform = `translateY(${Math.min(dy, 200)}px)`;
+        getBox().style.transition = 'none';
+      }
+    }, { passive: true });
+    document.addEventListener('touchend', e => {
+      if (!isDragging) return;
+      isDragging = false;
+      const box = getBox();
+      const dy = e.changedTouches[0].clientY - startY;
+      box.style.transition = '';
+      if (dy > 80) {
+        box.style.transform = 'translateY(100%)';
+        setTimeout(() => { box.style.transform = ''; closeModal(); }, 280);
+      } else {
+        box.style.transform = '';
+      }
+    }, { passive: true });
+  })();
+
+  // ── BACK TO TOP BUTTON ────────────────────────────────
+  window.addEventListener('scroll', () => {
+    const btn = document.getElementById('backToTop');
+    if (!btn) return;
+    btn.classList.toggle('show', window.scrollY > 400);
+  }, { passive: true });
 
   function populateModalInfo() {
     const d = currentDoctor;
