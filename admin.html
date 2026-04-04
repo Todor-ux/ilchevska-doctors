@@ -420,6 +420,9 @@
         <span class="nav-icon">📋</span> Резервации
       </button>
       <a class="sidebar-link" data-tab="applications" onclick="loadTab('applications')">📋 Кандидатури</a>
+      <button class="sidebar-link" data-tab="reviews" onclick="loadTab('reviews')">
+        <span class="nav-icon">⭐</span> Отзиви
+      </button>
     </div>
     <div class="sidebar-footer">
       <button class="btn-logout" onclick="adminLogout()">🚪 Изход</button>
@@ -483,6 +486,31 @@
             </tr>
           </thead>
           <tbody id="allBookingsList">
+            <tr class="empty-row"><td colspan="7">Зареждане...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB: ОТЗИВИ -->
+    <div id="tab-reviews" class="tab-content" style="display:none">
+      <div class="tab-header">
+        <h2>Отзиви на пациенти</h2>
+      </div>
+      <div class="filter-bar">
+        <label style="font-size:0.82rem;color:var(--muted);">Статус:</label>
+        <select id="reviewStatusFilter" onchange="loadAllReviews()">
+          <option value="">Всички</option>
+          <option value="true">Одобрени</option>
+          <option value="false">Скрити</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Лекар</th><th>Пациент</th><th>Оценка</th><th>Коментар</th><th>Дата</th><th>Статус</th><th>Действия</th></tr>
+          </thead>
+          <tbody id="reviewsList">
             <tr class="empty-row"><td colspan="7">Зареждане...</td></tr>
           </tbody>
         </table>
@@ -708,6 +736,7 @@
     document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
     if      (tab === 'doctors')  loadDoctors();
     else if (tab === 'bookings') loadAllBookings();
+    else if (tab === 'reviews')  loadAllReviews();
     else if (tab === 'applications') loadApplications();
   }
 
@@ -835,7 +864,43 @@
     loadDoctors();
   }
 
-  // ── ALL BOOKINGS ──────────────────────────────────────
+  // ── ALL REVIEWS ───────────────────────────────────────
+  async function loadAllReviews() {
+    const filter = document.getElementById('reviewStatusFilter')?.value;
+    let query = db.from('reviews').select('*, doctors(name)').order('created_at', { ascending: false });
+    if (filter === 'true')  query = query.eq('is_approved', true);
+    if (filter === 'false') query = query.eq('is_approved', false);
+    const { data, error } = await query;
+    const el = document.getElementById('reviewsList');
+    if (error) { el.innerHTML = `<tr class="empty-row"><td colspan="7">Грешка: ${escHtml(error.message)}</td></tr>`; return; }
+    if (!data?.length) { el.innerHTML = '<tr class="empty-row"><td colspan="7">Няма отзиви</td></tr>'; return; }
+    el.innerHTML = data.map(r => `
+      <tr>
+        <td>${escHtml(r.doctors?.name || '–')}</td>
+        <td>${escHtml(r.patient_name)}</td>
+        <td>${'★'.repeat(r.rating||0)}${'☆'.repeat(5-(r.rating||0))}</td>
+        <td><small>${escHtml(r.comment || '–')}</small></td>
+        <td><small>${r.created_at?.split('T')[0] || '–'}</small></td>
+        <td><span class="badge ${r.is_approved ? 'green' : 'red'}">${r.is_approved ? 'Одобрен' : 'Скрит'}</span></td>
+        <td>
+          <button onclick="toggleReview('${r.id}', ${!r.is_approved})" class="btn-small ${r.is_approved ? 'btn-orange' : 'btn-green'}">${r.is_approved ? 'Скрий' : 'Одобри'}</button>
+          <button onclick="deleteReview('${r.id}')" class="btn-small btn-red">Изтрий</button>
+        </td>
+      </tr>`).join('');
+  }
+
+  async function toggleReview(id, val) {
+    await db.from('reviews').update({ is_approved: val }).eq('id', id);
+    loadAllReviews();
+  }
+
+  async function deleteReview(id) {
+    if (!confirm('Изтриване на отзива?')) return;
+    await db.from('reviews').delete().eq('id', id);
+    loadAllReviews();
+  }
+
+  // ── ALL BOOKINGS ───────────────────────────────────────
   async function loadAllBookings() {
     const statusFilter = document.getElementById('bookingStatusFilter')?.value || '';
     let query = db.from('bookings')

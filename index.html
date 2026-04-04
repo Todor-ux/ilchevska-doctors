@@ -1031,17 +1031,31 @@
   }
 
   async function loadReviews(doctorId) {
-    const { data } = await db.from('reviews').select('*').eq('doctor_id', doctorId).order('created_at', { ascending: false }).limit(5);
+    const { data } = await db.from('reviews').select('*').eq('doctor_id', doctorId).eq('is_approved', true).order('created_at', { ascending: false }).limit(5);
     const el = document.getElementById('mReviews');
     if (!data || !data.length) { el.innerHTML = '<p style="color:var(--muted)">Все още няма отзиви.</p>'; return; }
+    const myId = localStorage.getItem('review_' + doctorId);
     el.innerHTML = data.map(r => `<div class="review">
       <div class="review-top">
         <span class="reviewer">${escHtml(r.patient_name)}</span>
         <span class="review-date">${fmtDate(r.created_at?.split('T')[0])}</span>
+        ${r.id === myId ? `<span onclick="editReview('${r.id}')" style="cursor:pointer;font-size:0.75rem;color:var(--accent);margin-left:8px;">✏️ Редактирай</span>` : ''}
       </div>
       <div class="stars">${'★'.repeat(r.rating||0)}${'☆'.repeat(5-(r.rating||0))}</div>
       <p class="review-text">${escHtml(r.comment||'')}</p>
     </div>`).join('');
+  }
+
+  function editReview(reviewId) {
+    db.from('reviews').select('*').eq('id', reviewId).single().then(({ data: r }) => {
+      if (!r) return;
+      document.getElementById('reviewName').value    = r.patient_name;
+      document.getElementById('reviewComment').value = r.comment || '';
+      setRating(r.rating || 0);
+      document.getElementById('reviewMsg').textContent = '';
+      document.getElementById('reviewForm').dataset.editId = reviewId;
+      document.getElementById('reviewForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
   }
 
   let selectedRating = 0;
@@ -1057,27 +1071,34 @@
     const name    = document.getElementById('reviewName').value.trim();
     const comment = document.getElementById('reviewComment').value.trim();
     const msgEl   = document.getElementById('reviewMsg');
+    const editId  = document.getElementById('reviewForm').dataset.editId;
     if (!name)           { msgEl.style.color='red'; msgEl.textContent='Моля въведете вашето име.'; return; }
     if (!selectedRating) { msgEl.style.color='red'; msgEl.textContent='Моля изберете оценка.'; return; }
-    const { error } = await db.from('reviews').insert({
-      doctor_id:    currentDoctor.id,
-      patient_name: name,
-      rating:       selectedRating,
-      comment:      comment || null
-    });
+
+    let error;
+    if (editId) {
+      ({ error } = await db.from('reviews').update({ patient_name: name, rating: selectedRating, comment: comment || null }).eq('id', editId));
+    } else {
+      const { data: inserted, error: insErr } = await db.from('reviews').insert({
+        doctor_id: currentDoctor.id, patient_name: name, rating: selectedRating, comment: comment || null
+      }).select().single();
+      error = insErr;
+      if (inserted) localStorage.setItem('review_' + currentDoctor.id, inserted.id);
+    }
     if (error) { msgEl.style.color='red'; msgEl.textContent='Грешка: ' + error.message; return; }
 
     // Recalculate doctor rating
-    const { data: allR } = await db.from('reviews').select('rating').eq('doctor_id', currentDoctor.id);
+    const { data: allR } = await db.from('reviews').select('rating').eq('doctor_id', currentDoctor.id).eq('is_approved', true);
     if (allR?.length) {
       const avg = allR.reduce((s,r) => s + r.rating, 0) / allR.length;
       await db.from('doctors').update({ rating: parseFloat(avg.toFixed(1)), reviews_count: allR.length }).eq('id', currentDoctor.id);
     }
 
     msgEl.style.color = 'green';
-    msgEl.textContent = '✓ Благодарим за отзива!';
+    msgEl.textContent = editId ? '✓ Отзивът е обновен!' : '✓ Благодарим за отзива!';
     document.getElementById('reviewName').value = '';
     document.getElementById('reviewComment').value = '';
+    delete document.getElementById('reviewForm').dataset.editId;
     setRating(0);
     await loadReviews(currentDoctor.id);
   }
