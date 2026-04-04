@@ -891,6 +891,14 @@
 
   async function toggleReview(id, val) {
     await db.from('reviews').update({ is_approved: val }).eq('id', id);
+    // Recalculate doctor rating
+    const { data: r } = await db.from('reviews').select('doctor_id').eq('id', id).single();
+    if (r?.doctor_id) {
+      const { data: allR } = await db.from('reviews').select('rating').eq('doctor_id', r.doctor_id).eq('is_approved', true);
+      const count = allR?.length || 0;
+      const avg   = count ? allR.reduce((s,x) => s + x.rating, 0) / count : 0;
+      await db.from('doctors').update({ rating: parseFloat(avg.toFixed(1)), reviews_count: count }).eq('id', r.doctor_id);
+    }
     loadAllReviews();
   }
 
