@@ -818,12 +818,22 @@
 </footer>
 
 <!-- ── SCRIPTS ──────────────────────────────────────────────── -->
-<script src="supabase.min.js"></script>
-<script src="email.min.js"></script>
-<script src="supabase-config.js"></script>
+<script src="supabase.min.js" onerror="document.getElementById('loadingStatus').textContent='ГРЕШКА: supabase.min.js не се зареди'"></script>
+<script src="email.min.js" onerror="document.getElementById('loadingStatus').textContent='ГРЕШКА: email.min.js не се зареди'"></script>
+<script src="supabase-config.js" onerror="document.getElementById('loadingStatus').textContent='ГРЕШКА: supabase-config.js не се зареди'"></script>
+<script>
+  try {
+    if (typeof supabase === 'undefined') throw new Error('supabase library not loaded');
+    if (typeof emailjs === 'undefined') throw new Error('emailjs library not loaded');
+    document.getElementById('loadingStatus').textContent = '✓ Библиотеките са заредени...';
+  } catch(libErr) {
+    document.getElementById('loadingStatus').textContent = 'ГРЕШКА при библиотека: ' + libErr.message;
+  }
+</script>
 <script>
   console.log('SCRIPT LOADED');
-  document.getElementById('loadingStatus').textContent = '✓ Script зареден. Изчакване на DOM...';
+  var st = document.getElementById('loadingStatus');
+  if (st) st.textContent = '✓ Script зареден. Изчакване на DOM...';
   let db;
   let allDoctors = [];
   let nextSlots = {};
