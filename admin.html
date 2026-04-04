@@ -648,6 +648,22 @@
         <label>Снимка (URL)</label>
         <input id="dPhoto" type="url" placeholder="https://...">
       </div>
+      <div class="form-group">
+        <label>✨ Мото / Цел</label>
+        <input id="dMotto" type="text" placeholder="Вдъхновяваща фраза...">
+      </div>
+      <div class="form-group">
+        <label>💡 Съвет за деня</label>
+        <textarea id="dDailyTip" rows="2" placeholder="Съвет за здравето..."></textarea>
+      </div>
+      <div class="form-group">
+        <label>🎥 Видео (YouTube линк)</label>
+        <input id="dVideo" type="url" placeholder="https://youtube.com/watch?v=...">
+      </div>
+      <div class="form-group">
+        <label>🏆 Сертификати (един на ред)</label>
+        <textarea id="dCertificates" rows="3" placeholder="Сертификат 2018&#10;Награда 2022"></textarea>
+      </div>
       <div class="checkbox-row">
         <input id="dAvail" type="checkbox" checked>
         <label for="dAvail">Активен / Наличен за резервации</label>
@@ -801,6 +817,11 @@
     document.getElementById('dColor').value         = d.avatar_color  || '#1d4e89';
     document.getElementById('dInitials').value      = d.initials      || '';
     document.getElementById('dAvail').checked       = d.is_available;
+    document.getElementById('dMotto').value         = d.motto        || '';
+    document.getElementById('dDailyTip').value      = d.daily_tip    || '';
+    document.getElementById('dVideo').value         = d.video_url    || '';
+    const ac = Array.isArray(d.certificates) ? d.certificates : [];
+    document.getElementById('dCertificates').value  = ac.map(c => typeof c === 'string' ? c : c.title||'').join('\n');
     document.getElementById('dPassword').value      = '';
     document.getElementById('doctorFormModal').style.display = 'flex';
   }
@@ -819,11 +840,15 @@
       description: document.getElementById('dDescription').value.trim(),
       languages: document.getElementById('dLangs').value.trim() || 'Български',
       tags: document.getElementById('dTags').value.trim() || null,
-      photo_url: document.getElementById('dPhoto').value.trim() || null,
-      avatar_color: document.getElementById('dColor').value || '#1d4e89',
-      initials: document.getElementById('dInitials').value.trim() || null,
+      photo_url:     document.getElementById('dPhoto').value.trim() || null,
+      avatar_color:  document.getElementById('dColor').value || '#1d4e89',
+      initials:      document.getElementById('dInitials').value.trim() || null,
       experience_years: parseInt(document.getElementById('dExp').value) || 0,
-      is_available: document.getElementById('dAvail').checked,
+      is_available:  document.getElementById('dAvail').checked,
+      motto:         document.getElementById('dMotto').value.trim() || null,
+      daily_tip:     document.getElementById('dDailyTip').value.trim() || null,
+      video_url:     document.getElementById('dVideo').value.trim() || null,
+      certificates:  document.getElementById('dCertificates').value.split('\n').map(s=>s.trim()).filter(Boolean),
     };
 
     // Create/update Auth account if email + password provided

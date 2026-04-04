@@ -707,6 +707,7 @@
       <div id="mAvatar"></div>
       <div class="modal-header-info">
         <h2 id="mName"></h2>
+        <div id="mMotto" style="font-style:italic;font-size:0.82rem;opacity:0.85;margin-bottom:4px;"></div>
         <div id="mSpec"></div>
         <div id="mStars"></div>
         <div id="mMeta"></div>
@@ -717,9 +718,21 @@
     <div class="modal-body">
       <!-- Left: Info -->
       <div class="modal-left">
+        <div id="mDailyTipSection" class="modal-section" style="display:none;background:linear-gradient(135deg,#e8f5e9,#f1f8e9);border-radius:10px;padding:14px;">
+          <h4 style="color:#2a9d5c;">💡 Съвет за деня</h4>
+          <p id="mDailyTip" style="font-size:0.88rem;line-height:1.6;"></p>
+        </div>
         <div class="modal-section">
           <h4>За специалиста</h4>
           <p id="mAbout"></p>
+        </div>
+        <div id="mVideoSection" class="modal-section" style="display:none;">
+          <h4>🎥 Видео пр��дставяне</h4>
+          <div id="mVideo"></div>
+        </div>
+        <div id="mCertsSection" class="modal-section" style="display:none;">
+          <h4>🏆 Сертификати и награди</h4>
+          <div id="mCerts"></div>
         </div>
         <div class="modal-section">
           <h4>Образование и опит</h4>
@@ -966,11 +979,13 @@
           <div class="avail-dot ${isToday?'online':'offline'}" title="${isToday?'Наличен днес':'Не е наличен днес'}"></div>
           ${avatarEl(d, 76)}
           <div class="card-name">${escHtml(d.name)}</div>
+          ${d.motto ? `<div style="font-size:0.72rem;font-style:italic;color:var(--accent);margin:-2px 0 2px;opacity:0.9;">"${escHtml(d.motto)}"</div>` : ''}
           <span class="card-spec">${escHtml(d.specialty)}</span>
         </div>
         <div class="card-body">
           <div class="stars">${starsHTML(d.rating)}<span>${(d.rating||0).toFixed(1)} (${d.reviews_count||0} отзива)</span></div>
           <div class="card-price">${d.price} евро <small>/ консултация</small></div>
+          ${d.daily_tip ? `<div class="next-slot">💡 <span>Съвет:</span> ${escHtml(d.daily_tip.slice(0,55))}${d.daily_tip.length>55?'...':''}</div>` : ''}
           <div class="next-slot">🕐 <span>Следващ час:</span> ${nextText}</div>
         </div>
         <div class="card-footer"><button class="btn-book" onclick="event.stopPropagation(); openModal('${d.id}')">Резервирай час</button></div>
@@ -1008,12 +1023,40 @@
     const d = currentDoctor;
     document.getElementById('mAvatar').innerHTML = avatarEl(d, 100);
     document.getElementById('mName').textContent = d.name;
+    const mottoEl = document.getElementById('mMotto');
+    mottoEl.textContent = d.motto ? `"${d.motto}"` : '';
+    mottoEl.style.display = d.motto ? '' : 'none';
     document.getElementById('mSpec').innerHTML = `<span class="spec-badge">${escHtml(d.specialty)}</span>`;
     document.getElementById('mStars').innerHTML = starsHTML(d.rating) + ` <span>${(d.rating||0).toFixed(1)}/5 (${d.reviews_count||0} отзива)</span>`;
     document.getElementById('mMeta').innerHTML = `
       <span>🏥 ${d.experience||0} г. опит</span>
       <span>⏱ ${d.duration||30} мин.</span>
       <span>${nextSlots[d.id] ? '🟢 Свободни часове' : '🔴 Без часове'}</span>`;
+    // Daily tip
+    const tipSection = document.getElementById('mDailyTipSection');
+    if (d.daily_tip) { tipSection.style.display = ''; document.getElementById('mDailyTip').textContent = d.daily_tip; }
+    else tipSection.style.display = 'none';
+
+    // Video
+    const videoSection = document.getElementById('mVideoSection');
+    if (d.video_url) {
+      videoSection.style.display = '';
+      const ytId = d.video_url.match(/(?:youtu\.be\/|v=)([^&\s]+)/)?.[1];
+      document.getElementById('mVideo').innerHTML = ytId
+        ? `<iframe width="100%" height="220" src="https://www.youtube.com/embed/${ytId}" frameborder="0" allowfullscreen style="border-radius:8px;"></iframe>`
+        : `<a href="${escHtml(d.video_url)}" target="_blank" style="color:var(--accent);">▶ Гледай видео</a>`;
+    } else videoSection.style.display = 'none';
+
+    // Certificates
+    const certsSection = document.getElementById('mCertsSection');
+    const certs = Array.isArray(d.certificates) ? d.certificates : [];
+    if (certs.length) {
+      certsSection.style.display = '';
+      document.getElementById('mCerts').innerHTML = certs.map(c =>
+        `<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:0.85rem;">🏅 ${escHtml(typeof c === 'string' ? c : c.title||'')}</div>`
+      ).join('');
+    } else certsSection.style.display = 'none';
+
     document.getElementById('mAbout').textContent = d.description || 'Няма въведена информация.';
     const edu = d.education || [];
     document.getElementById('mEducation').innerHTML = (Array.isArray(edu) ? edu : []).map(e =>

@@ -458,6 +458,22 @@
             <label>Снимка (URL)</label>
             <input id="pfPhoto" type="url" placeholder="https://...">
           </div>
+          <div class="form-group">
+            <label>💡 Съвет за деня</label>
+            <textarea id="pfDailyTip" rows="2" placeholder="Напишете вашия съвет за здравето..."></textarea>
+          </div>
+          <div class="form-group">
+            <label>✨ Мото / Цел</label>
+            <input id="pfMotto" type="text" placeholder="Вдъхновяваща фраза или девиз...">
+          </div>
+          <div class="form-group">
+            <label>🎥 Видео (YouTube линк)</label>
+            <input id="pfVideo" type="url" placeholder="https://youtube.com/watch?v=...">
+          </div>
+          <div class="form-group">
+            <label>🏆 Сертификати и награди (един на ред)</label>
+            <textarea id="pfCertificates" rows="3" placeholder="Сертификат по кардиология 2018&#10;Награда за иновации 2022"></textarea>
+          </div>
           <button type="submit" class="btn-primary" style="width:auto;padding:11px 28px;">💾 Запази промените</button>
           <div class="save-msg" id="pfSaveMsg"></div>
         </form>
@@ -731,6 +747,11 @@
     document.getElementById('pfDescription').value= currentDoctor.description || '';
     document.getElementById('pfLanguages').value  = (currentDoctor.languages||[]).join(', ');
     document.getElementById('pfPhoto').value      = currentDoctor.photo_url   || '';
+    document.getElementById('pfMotto').value      = currentDoctor.motto       || '';
+    document.getElementById('pfDailyTip').value   = currentDoctor.daily_tip   || '';
+    document.getElementById('pfVideo').value      = currentDoctor.video_url   || '';
+    const certs = Array.isArray(currentDoctor.certificates) ? currentDoctor.certificates : [];
+    document.getElementById('pfCertificates').value = certs.map(c => typeof c === 'string' ? c : c.title||'').join('\n');
   }
 
   async function saveProfile(e) {
@@ -741,8 +762,12 @@
       price:       parseInt(document.getElementById('pfPrice').value),
       duration:    parseInt(document.getElementById('pfDuration').value),
       description: document.getElementById('pfDescription').value.trim(),
-      languages:   document.getElementById('pfLanguages').value.split(',').map(l=>l.trim()).filter(Boolean),
-      photo_url:   document.getElementById('pfPhoto').value.trim() || null,
+      languages:     document.getElementById('pfLanguages').value.split(',').map(l=>l.trim()).filter(Boolean),
+      photo_url:     document.getElementById('pfPhoto').value.trim() || null,
+      motto:         document.getElementById('pfMotto').value.trim() || null,
+      daily_tip:     document.getElementById('pfDailyTip').value.trim() || null,
+      video_url:     document.getElementById('pfVideo').value.trim() || null,
+      certificates:  document.getElementById('pfCertificates').value.split('\n').map(s=>s.trim()).filter(Boolean),
     };
     const { error } = await db.from('doctors').update(updates).eq('id', currentDoctor.id);
     if (error) { alert('Грешка: ' + error.message); return; }
