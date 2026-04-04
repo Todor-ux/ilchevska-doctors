@@ -523,16 +523,11 @@
     errEl.textContent = '';
     const { data, error } = await db.auth.signInWithPassword({ email, password });
     if (error) {
-      errEl.textContent = 'Auth грешка: ' + error.message;
+      errEl.textContent = 'Грешен имейл или парола.';
       return;
     }
     await loadDoctorProfile(data.user.email);
-    if (!currentDoctor) {
-      await db.auth.signOut();
-      errEl.textContent = 'Не е намерен лекар с имейл: ' + data.user.email + '. Проверете дали имейлът съвпада с този в базата данни.';
-      return;
-    }
-    if (!currentDoctor.is_approved) {
+    if (!currentDoctor || !currentDoctor.is_approved) {
       await db.auth.signOut();
       errEl.textContent = 'Вашият акаунт не е одобрен от администратора.';
       return;
