@@ -1187,10 +1187,14 @@
     const doctorSnap  = { ...currentDoctor };
     clearPending();
 
-    await Promise.allSettled([
+    const emailResults = await Promise.allSettled([
       sendDoctorEmail(payload, doctorSnap, slotDate, slotTime),
       sendPatientEmail(payload, doctorSnap, slotDate, slotTime)
     ]);
+    emailResults.forEach((r, i) => {
+      if (r.status === 'rejected') console.error('Email ' + (i===0?'doctor':'patient') + ' failed:', r.reason);
+      else console.log('Email ' + (i===0?'doctor':'patient') + ' sent:', r.value);
+    });
 
     closeModal();
     showSuccessModal(payload.p_patient_name, fmtDate(slotDate), slotTime.slice(0,5), doctorSnap);
