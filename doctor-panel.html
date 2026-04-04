@@ -479,6 +479,22 @@
           <div class="save-msg" id="pfSaveMsg"></div>
         </form>
       </div>
+
+      <div class="panel-card" style="margin-top:20px">
+        <h3>🔒 Смяна на парола</h3>
+        <form onsubmit="changePassword(event)" style="max-width:420px">
+          <div class="form-group">
+            <label>Нова парола *</label>
+            <input id="pwNew" type="password" minlength="6" required placeholder="Поне 6 символа">
+          </div>
+          <div class="form-group">
+            <label>Потвърди новата парола *</label>
+            <input id="pwConfirm" type="password" minlength="6" required placeholder="Повтори паролата">
+          </div>
+          <button type="submit" class="btn-primary" style="width:auto;padding:11px 28px;">🔒 Смени паролата</button>
+          <div class="save-msg" id="pwSaveMsg"></div>
+        </form>
+      </div>
     </div>
 
     <!-- TAB: СТАТИСТИКИ -->
@@ -777,6 +793,23 @@
     const msg = document.getElementById('pfSaveMsg');
     msg.textContent = '✓ Запазено успешно!';
     setTimeout(() => { msg.textContent = ''; }, 3000);
+  }
+
+  // ── PASSWORD CHANGE ───────────────────────────────────
+  async function changePassword(e) {
+    e.preventDefault();
+    const newPw  = document.getElementById('pwNew').value;
+    const confirm = document.getElementById('pwConfirm').value;
+    const msg = document.getElementById('pwSaveMsg');
+    msg.style.color = '#e53e3e';
+    if (newPw !== confirm) { msg.textContent = 'Паролите не съвпадат.'; return; }
+    const { error } = await db.auth.updateUser({ password: newPw });
+    if (error) { msg.textContent = 'Грешка: ' + error.message; return; }
+    msg.style.color = '#2a9d5c';
+    msg.textContent = '✓ Паролата е сменена успешно!';
+    document.getElementById('pwNew').value = '';
+    document.getElementById('pwConfirm').value = '';
+    setTimeout(() => { msg.textContent = ''; }, 4000);
   }
 
   // ── STATS ─────────────────────────────────────────────
