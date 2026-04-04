@@ -963,21 +963,21 @@
 
   // ── DOCTOR MODAL ──────────────────────────────────────
   async function openModal(doctorId) {
-    currentDoctor = allDoctors.find(d => d.id === doctorId);
-    if (!currentDoctor) return;
-    selectedDate = null; selectedSlot = null; currentMonthSlots = {};
-    clearPending();
-    populateModalInfo();
-    resetBookingForm();
-    document.getElementById('doctorModal').classList.add('show');
-    document.body.style.overflow = 'hidden';
     try {
+      currentDoctor = allDoctors.find(d => d.id === doctorId);
+      if (!currentDoctor) { alert('Лекарят не е намерен: ' + doctorId); return; }
+      selectedDate = null; selectedSlot = null; currentMonthSlots = {};
+      clearPending();
+      populateModalInfo();
+      resetBookingForm();
+      document.getElementById('doctorModal').classList.add('show');
+      document.body.style.overflow = 'hidden';
       await loadReviews(doctorId);
       const now = new Date(); calYear = now.getFullYear(); calMonth = now.getMonth();
       await loadMonthSlots();
       renderCal();
     } catch(e) {
-      console.error('Modal load error:', e);
+      alert('Грешка при отваряне: ' + e.message);
     }
   }
 
