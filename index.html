@@ -174,6 +174,37 @@
       transition: var(--transition);
     }
     .btn-reset:hover { border-color: var(--accent); color: var(--accent); }
+    .spec-search-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    #fSpec[type="text"] {
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 7px 28px 7px 11px;
+      font-size: 0.85rem;
+      color: var(--text);
+      background: var(--bg);
+      outline: none;
+      width: 190px;
+      transition: border-color var(--transition);
+      cursor: text;
+    }
+    #fSpec[type="text"]:focus { border-color: var(--accent); }
+    .spec-clear {
+      position: absolute;
+      right: 6px;
+      background: none;
+      border: none;
+      font-size: 0.7rem;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 2px 4px;
+      line-height: 1;
+      display: none;
+    }
+    .spec-clear.visible { display: block; }
     .btn-favs {
       background: transparent;
       border: 1.5px solid var(--border);
@@ -682,6 +713,8 @@
         padding: 11px 12px;
         min-height: 44px;
       }
+      .spec-search-wrap { width: 100%; }
+      #fSpec[type="text"] { width: 100%; min-height: 44px; font-size: 0.92rem; padding: 11px 28px 11px 12px; }
       .btn-favs, .btn-reset {
         width: 100%;
         min-height: 44px;
@@ -800,29 +833,11 @@
   </button>
   <div class="filters-inner">
     <span class="filter-label">Специалност:</span>
-    <select id="fSpec" onchange="applyFilters()">
-      <option value="">Всички</option>
-      <option>Кардиолог</option>
-      <option>Дерматолог</option>
-      <option>Педиатър</option>
-      <option>Невролог</option>
-      <option>Ортопед</option>
-      <option>Гинеколог</option>
-      <option>Офталмолог</option>
-      <option>Психолог</option>
-      <option>Диетолог</option>
-      <option>Фармацевт</option>
-      <option>Уролог</option>
-      <option>Ендокринолог</option>
-      <option>Пулмолог</option>
-      <option>Гастроентеролог</option>
-      <option>Хирург</option>
-      <option>Ревматолог</option>
-      <option>Нефролог</option>
-      <option>Онколог</option>
-      <option>Алерголог</option>
-      <option>Имунолог</option>
-    </select>
+    <div class="spec-search-wrap">
+      <input id="fSpec" type="text" list="specDatalist" placeholder="Всички специалности…" oninput="applyFilters()" autocomplete="off">
+      <datalist id="specDatalist"></datalist>
+      <button class="spec-clear" id="fSpecClear" onclick="clearSpec()" title="Изчисти">✕</button>
+    </div>
 
     <span class="filter-label">Цена от:</span>
     <input type="number" id="fPriceMin" placeholder="0" min="0" oninput="applyFilters()">
@@ -1072,6 +1087,7 @@
       allDoctors = doctors || [];
       nextSlots = {};
       (slots || []).forEach(s => { if (!nextSlots[s.doctor_id]) nextSlots[s.doctor_id] = s; });
+      populateSpecDatalist();
       applyFilters();
     } catch(e) {
       document.getElementById('doctorsGrid').innerHTML = `<div class="no-results"><h3>Грешка при зареждане</h3><p>${e.message}</p><button onclick="loadDoctors()">Опитай пак</button></div>`;
@@ -1105,19 +1121,23 @@
   // ── FILTER + SORT ─────────────────────────────────────
   function applyFilters() {
     const q      = (document.getElementById('searchInput').value || '').toLowerCase();
-    const spec   = document.getElementById('fSpec').value;
+    const spec   = (document.getElementById('fSpec').value || '').toLowerCase().trim();
     const pMin   = parseFloat(document.getElementById('fPriceMin').value) || 0;
     const pMax   = parseFloat(document.getElementById('fPriceMax').value) || Infinity;
     const avail  = document.getElementById('fAvail').value;
     const minR   = parseFloat(document.getElementById('fRating').value) || 0;
     const sort   = document.getElementById('fSort').value;
 
+    // Show/hide clear button
+    const clearBtn = document.getElementById('fSpecClear');
+    if (clearBtn) clearBtn.classList.toggle('visible', spec.length > 0);
+
     let list = allDoctors.filter(d => {
       if (showFavsOnly && !favorites.includes(d.id)) return false;
       if (q && !d.name.toLowerCase().includes(q) && !d.specialty.toLowerCase().includes(q) &&
           !(Array.isArray(d.tags) ? d.tags : []).some(t => t.toLowerCase().includes(q)) &&
           !(d.description||'').toLowerCase().includes(q)) return false;
-      if (spec && d.specialty !== spec) return false;
+      if (spec && !d.specialty.toLowerCase().includes(spec)) return false;
       if (d.price < pMin || d.price > pMax) return false;
       if (avail === 'today' && nextSlots[d.id]?.date !== today()) return false;
       if (avail === 'week') {
@@ -1143,14 +1163,27 @@
     renderGrid(list);
   }
 
+  function clearSpec() {
+    document.getElementById('fSpec').value = '';
+    document.getElementById('fSpecClear').classList.remove('visible');
+    applyFilters();
+  }
+
   function resetFilters() {
-    ['searchInput','fPriceMin','fPriceMax'].forEach(id => document.getElementById(id).value = '');
-    ['fSpec','fAvail'].forEach(id => document.getElementById(id).value = '');
+    ['searchInput','fPriceMin','fPriceMax','fSpec'].forEach(id => document.getElementById(id).value = '');
+    ['fAvail'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('fRating').value = '0';
     document.getElementById('fSort').value = 'rating';
+    document.getElementById('fSpecClear').classList.remove('visible');
     showFavsOnly = false;
     document.getElementById('btnFavs').classList.remove('active');
     applyFilters();
+  }
+
+  function populateSpecDatalist() {
+    const specs = [...new Set(allDoctors.map(d => d.specialty).filter(Boolean))].sort();
+    const dl = document.getElementById('specDatalist');
+    dl.innerHTML = specs.map(s => `<option value="${escHtml(s)}">`).join('');
   }
 
   // ── RENDER GRID ───────────────────────────────────────
