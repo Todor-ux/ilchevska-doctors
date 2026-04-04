@@ -499,6 +499,7 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     db = initSupabase();
+    emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
     checkSession();
   });
 
@@ -616,7 +617,32 @@
   }
 
   async function updateStatus(bookingId, status) {
-    await db.from('bookings').update({ status }).eq('id', bookingId);
+    const { error } = await db.from('bookings').update({ status }).eq('id', bookingId);
+    if (error) { alert('Грешка: ' + error.message); return; }
+
+    // Send email to patient
+    const { data: b } = await db.from('bookings')
+      .select('*, time_slots(date, time)')
+      .eq('id', bookingId).single();
+    if (b?.patient_email) {
+      const msg = status === 'cancelled'
+        ? 'За съжаление консултацията Ви беше отказана от специалиста. Моля свържете се с нас за нов час.'
+        : 'Консултацията Ви беше отбелязана като завършена. Благодарим Ви, че се доверихте на ' + PHARMACY_NAME + '!';
+      emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_PATIENT_TEMPLATE, {
+        patient_email: b.patient_email,
+        patient_name:  b.patient_name,
+        doctor_name:   currentDoctor.name,
+        specialty:     currentDoctor.specialty,
+        date:          b.time_slots?.date || '',
+        time:          b.time_slots?.time?.slice(0,5) || '',
+        price:         currentDoctor.price || 0,
+        duration:      currentDoctor.duration || 30,
+        pharmacy_name:  PHARMACY_NAME,
+        pharmacy_phone: PHARMACY_PHONE,
+        pharmacy_addr:  PHARMACY_ADDR,
+      }).catch(() => {});
+    }
+
     loadTodayBookings();
     loadWeekBookings();
   }
