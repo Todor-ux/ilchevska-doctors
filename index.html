@@ -1100,7 +1100,7 @@
     if (selectedSlot) clearPending();
     const { data: ok, error } = await db.rpc('reserve_slot', { slot_id: slotId });
     if (error || !ok) {
-      alert('reserve_slot резултат: ok=' + JSON.stringify(ok) + ' error=' + JSON.stringify(error?.message));
+      alert('Часът вече е зает. Моля изберете друг.');
       await loadMonthSlots(); renderCal(); return;
     }
     selectedSlot = { id: slotId, time: slotTime };
