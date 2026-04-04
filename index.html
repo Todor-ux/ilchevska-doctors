@@ -1203,7 +1203,7 @@
   async function sendDoctorEmail(p, doc, date, time) {
     if (!doc.email) return;
     return emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_DOCTOR_TEMPLATE, {
-      to_email:       doc.email,
+      doctor_email:   doc.email,
       doctor_name:    doc.name,
       patient_name:   p.p_patient_name,
       patient_email:  p.p_patient_email,
@@ -1218,7 +1218,7 @@
 
   async function sendPatientEmail(p, doc, date, time) {
     return emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_PATIENT_TEMPLATE, {
-      to_email:       p.p_patient_email,
+      patient_email:  p.p_patient_email,
       patient_name:   p.p_patient_name,
       doctor_name:    doc.name,
       specialty:      doc.specialty,
