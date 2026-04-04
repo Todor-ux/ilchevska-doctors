@@ -522,7 +522,7 @@
     errEl.textContent = '';
     const { data, error } = await db.auth.signInWithPassword({ email, password });
     if (error) {
-      errEl.textContent = 'Грешен имейл или парола';
+      errEl.textContent = 'Auth грешка: ' + error.message;
       return;
     }
     await loadDoctorProfile(data.user.email);
