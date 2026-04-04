@@ -506,6 +506,11 @@
     const { data: { session } } = await db.auth.getSession();
     if (session) {
       await loadDoctorProfile(session.user.email);
+      if (!currentDoctor || !currentDoctor.is_approved) {
+        await db.auth.signOut();
+        document.getElementById('loginError').textContent = 'Вашият акаунт не е одобрен от администратора.';
+        return;
+      }
       showPanel();
     }
   }
@@ -521,6 +526,11 @@
       return;
     }
     await loadDoctorProfile(data.user.email);
+    if (!currentDoctor || !currentDoctor.is_approved) {
+      await db.auth.signOut();
+      errEl.textContent = 'Вашият акаунт не е одобрен от администратора.';
+      return;
+    }
     showPanel();
   }
 

@@ -718,11 +718,15 @@
         <td>${escHtml(d.specialty)}</td>
         <td>${d.price} евро</td>
         <td>${(d.rating||0).toFixed(1)} ★</td>
-        <td><span class="badge ${d.is_available?'green':'red'}">${d.is_available?'Активен':'Неактивен'}</span></td>
+        <td>
+          <span class="badge ${d.is_available?'green':'red'}">${d.is_available?'Активен':'Неактивен'}</span>
+          <span class="badge ${d.is_approved?'green':'red'}" style="margin-left:4px">${d.is_approved?'Одобрен':'Неодобрен'}</span>
+        </td>
         <td style="display:flex;gap:5px;flex-wrap:wrap;">
           <button onclick="editDoctor('${d.id}')" class="btn-small btn-blue">Редактирай</button>
           <button onclick="openAdminCalendar('${d.id}','${d.name}')" class="btn-small btn-teal">Часове</button>
           <button onclick="toggleDoctor('${d.id}', ${!d.is_available})" class="btn-small ${d.is_available?'btn-orange':'btn-green'}">${d.is_available?'Деактивирай':'Активирай'}</button>
+          <button onclick="toggleApproval('${d.id}', ${!d.is_approved})" class="btn-small ${d.is_approved?'btn-orange':'btn-green'}">${d.is_approved?'Отнеми достъп':'Одобри панел'}</button>
           <button onclick="deleteDoctor('${d.id}')" class="btn-small btn-red">Изтрий</button>
         </td>
       </tr>`).join('');
@@ -796,6 +800,11 @@
 
   async function toggleDoctor(id, val) {
     await db.from('doctors').update({ is_available: val }).eq('id', id);
+    loadDoctors();
+  }
+
+  async function toggleApproval(id, val) {
+    await db.from('doctors').update({ is_approved: val }).eq('id', id);
     loadDoctors();
   }
 
