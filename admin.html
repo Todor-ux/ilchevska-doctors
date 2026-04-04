@@ -431,7 +431,8 @@
       .btn-small { min-height: 38px; padding: 7px 12px; font-size: 0.8rem; }
 
       /* Modal bottom sheet */
-      .modal-overlay { padding: 0; display: flex !important; align-items: flex-end; }
+      .modal-overlay { padding: 0; }
+      .modal-overlay[style*="flex"] { align-items: flex-end; }
       .modal-box {
         border-radius: 20px 20px 0 0;
         max-width: 100%;
