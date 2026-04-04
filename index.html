@@ -613,13 +613,146 @@
     .footer-divider { border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 20px 0; }
     .footer-copy { font-size: 0.78rem; opacity: 0.55; }
 
+    /* ── MOBILE FILTER TOGGLE BUTTON ────────────────── */
+    .mobile-filter-btn {
+      display: none;
+      width: 100%;
+      background: var(--bg);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--text);
+      cursor: pointer;
+      text-align: left;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      transition: var(--transition);
+    }
+    .mobile-filter-btn:active { background: var(--border); }
+
     /* ── RESPONSIVE ─────────────────────────────────── */
+
+    /* Tablet */
+    @media (max-width: 900px) {
+      .header-inner { height: 58px; }
+      .main-content { padding: 24px 16px 48px; }
+    }
+
+    /* Mobile */
     @media (max-width: 600px) {
-      .filters-inner { gap: 6px; }
+      /* Header */
+      .header-inner { padding: 0 14px; height: 54px; gap: 8px; }
+      .logo { font-size: 1rem; }
+      .logo .logo-sub { display: none; }
+      nav a { font-size: 0.8rem; padding: 8px 10px; min-height: 44px; display: flex; align-items: center; }
+
+      /* Hero */
+      .hero { padding: 40px 16px 36px; }
+      .hero h1 { font-size: 1.5rem; }
+      .hero p { font-size: 0.92rem; margin-bottom: 24px; }
+      #searchInput { padding: 14px 16px; font-size: 0.92rem; }
+      .search-btn { padding: 0 20px; min-height: 50px; font-size: 0.92rem; }
+
+      /* Stats bar */
+      .stats-inner { gap: 20px; }
+      .stat-value { font-size: 1.2rem; }
+      .stat-label { font-size: 0.7rem; }
+
+      /* Filters */
+      .filters-bar { padding: 10px 14px; top: 54px; }
+      .mobile-filter-btn { display: flex; }
+      .filters-inner {
+        display: none;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid var(--border);
+      }
+      .filters-bar.open .filters-inner { display: flex; }
+      .filter-label { font-size: 0.8rem; font-weight: 600; color: var(--text-light); margin-top: 4px; }
       .filters-inner select,
-      .filters-inner input[type="number"] { font-size: 0.78rem; padding: 6px 8px; }
-      .modal-body { grid-template-columns: 1fr; }
-      .modal-left { border-right: none; border-bottom: 1px solid var(--border); }
+      .filters-inner input[type="number"] {
+        width: 100%;
+        font-size: 0.92rem;
+        padding: 11px 12px;
+        min-height: 44px;
+      }
+      .btn-favs, .btn-reset {
+        width: 100%;
+        min-height: 44px;
+        font-size: 0.92rem;
+        padding: 11px 16px;
+        text-align: center;
+      }
+      #resultsCount { margin-left: 0; margin-top: 4px; text-align: center; }
+
+      /* Doctor grid */
+      .main-content { padding: 16px 12px 40px; }
+      .doctors-grid { gap: 14px; }
+
+      /* Doctor card */
+      .card-top { padding: 20px 14px 16px; }
+      .card-name { font-size: 1.05rem; }
+      .card-body { padding: 12px 14px; }
+      .card-footer { padding: 0 14px 14px; }
+      .btn-book, .btn-view {
+        min-height: 48px;
+        font-size: 0.95rem;
+        padding: 13px;
+      }
+
+      /* Modal — full-screen bottom sheet */
+      .modal-overlay { padding: 0; align-items: flex-end; }
+      .modal-box {
+        border-radius: 20px 20px 0 0;
+        max-width: 100%;
+        max-height: 92vh;
+        overflow-y: auto;
+        margin: 0;
+        animation: slideUp 0.32s ease;
+      }
+      @keyframes slideUp { from { transform: translateY(100%); opacity: 0.6; } to { transform: translateY(0); opacity: 1; } }
+
+      /* Modal header */
+      .modal-header { padding: 20px 16px 16px; gap: 14px; }
+      .modal-header-info h2 { font-size: 1.15rem; }
+      .modal-close { width: 38px; height: 38px; font-size: 1.1rem; }
+
+      /* Modal body */
+      .modal-body { grid-template-columns: 1fr; min-height: unset; }
+      .modal-left { border-right: none; border-bottom: 1px solid var(--border); padding: 16px; }
+      .modal-right { padding: 16px; }
+
+      /* Calendar */
+      .cal-day { font-size: 0.82rem; }
+      .cal-nav-btn { width: 38px; height: 38px; }
+
+      /* Time slots — bigger for touch */
+      .time-slot {
+        padding: 10px 16px;
+        font-size: 0.9rem;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+      }
+
+      /* Booking form inputs */
+      .form-group input,
+      .form-group textarea { padding: 12px 13px; font-size: 0.95rem; min-height: 44px; }
+      .form-group textarea { min-height: 80px; }
+      .btn-submit { min-height: 50px; font-size: 1rem; padding: 14px; }
+
+      /* Success box */
+      .success-box { padding: 36px 24px; border-radius: 20px 20px 0 0; max-width: 100%; }
+      .btn-success-close { min-height: 50px; width: 100%; font-size: 1rem; }
+
+      /* Footer */
+      footer { padding: 28px 16px; }
     }
   </style>
 </head>
@@ -661,6 +794,10 @@
 
 <!-- ── FILTERS BAR ──────────────────────────────────────────── -->
 <div class="filters-bar" id="doctors-section">
+  <button class="mobile-filter-btn" onclick="document.getElementById('doctors-section').classList.toggle('open')">
+    <span>🔍 Филтри и сортиране</span>
+    <span>▾</span>
+  </button>
   <div class="filters-inner">
     <span class="filter-label">Специалност:</span>
     <select id="fSpec" onchange="applyFilters()">
