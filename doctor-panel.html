@@ -571,7 +571,7 @@
   // ── TODAY BOOKINGS ────────────────────────────────────
   async function loadTodayBookings() {
     if (!currentDoctor) return;
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = dateToStr(new Date());
     const { data } = await db.from('bookings')
       .select('*, time_slots(date, time)')
       .eq('doctor_id', currentDoctor.id)
@@ -582,7 +582,7 @@
 
   async function loadWeekBookings() {
     if (!currentDoctor) return;
-    const start = new Date().toISOString().split('T')[0];
+    const start = dateToStr(new Date());
     const endDate = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
     const { data } = await db.from('bookings')
       .select('*, time_slots(date, time)')
@@ -624,7 +624,7 @@
   // ── SLOTS MANAGEMENT ──────────────────────────────────
   async function loadSlots() {
     if (!currentDoctor) return;
-    const start = new Date().toISOString().split('T')[0];
+    const start = dateToStr(new Date());
     const { data } = await db.from('time_slots')
       .select('*')
       .eq('doctor_id', currentDoctor.id)
@@ -778,7 +778,7 @@
     return days;
   }
 
-  function dateToStr(d) { return d.toISOString().split('T')[0]; }
+  function dateToStr(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 
   async function loadWeekCalendar() {
     if (!currentDoctor) return;
