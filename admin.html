@@ -599,12 +599,13 @@
               <th>Пациент</th>
               <th>Телефон</th>
               <th>Оплакване</th>
+              <th>Вид</th>
               <th>Статус</th>
               <th>Промени</th>
             </tr>
           </thead>
           <tbody id="allBookingsList">
-            <tr class="empty-row"><td colspan="7">Зареждане...</td></tr>
+            <tr class="empty-row"><td colspan="8">Зареждане...</td></tr>
           </tbody>
         </table>
       </div>
@@ -1067,11 +1068,11 @@
 
     const el = document.getElementById('allBookingsList');
     if (error) {
-      el.innerHTML = `<tr class="empty-row"><td colspan="7">Грешка: ${escHtml(error.message)}</td></tr>`;
+      el.innerHTML = `<tr class="empty-row"><td colspan="8">Грешка: ${escHtml(error.message)}</td></tr>`;
       return;
     }
     if (!data?.length) {
-      el.innerHTML = '<tr class="empty-row"><td colspan="7">Няма резервации</td></tr>';
+      el.innerHTML = '<tr class="empty-row"><td colspan="8">Няма резервации</td></tr>';
       return;
     }
     el.innerHTML = data.map(b => `
@@ -1081,6 +1082,7 @@
         <td>${escHtml(b.patient_name)}<small>${escHtml(b.patient_email)}</small></td>
         <td>${escHtml(b.patient_phone||'–')}</td>
         <td><small>${escHtml(b.complaint||'–')}</small></td>
+        <td>${b.consultation_type === 'online' ? '💻 Онлайн' : '🏥 Физическа'}</td>
         <td><span class="badge ${b.status}">${escHtml(b.status)}</span></td>
         <td>
           <select class="status-select" onchange="adminUpdateBooking('${b.id}', this.value)">
