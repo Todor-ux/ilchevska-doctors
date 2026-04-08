@@ -1625,7 +1625,7 @@
       el.innerHTML = '<p style="font-size:.82rem;color:var(--muted)">Изберете дата от календара.</p>';
       return;
     }
-    const slots = currentMonthSlots[selectedDate] || [];
+    const slots = (currentMonthSlots[selectedDate] || []).slice().sort((a, b) => a.time.localeCompare(b.time));
     if (!slots.length) {
       el.innerHTML = '<p style="font-size:.82rem;color:var(--muted)">Няма свободни часове за тази дата.</p>';
       return;
