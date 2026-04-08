@@ -625,6 +625,29 @@
     .btn-submit:hover { background: var(--accent-dark); }
     .btn-submit:disabled { background: var(--muted); cursor: not-allowed; }
 
+    /* Consultation type toggle */
+    .consult-type-group { margin-bottom: 12px; }
+    .consult-type-group label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-light); margin-bottom: 6px; }
+    .consult-type-btns { display: flex; gap: 8px; }
+    .consult-type-btns button {
+      flex: 1;
+      padding: 9px 8px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: #fff;
+      color: var(--text);
+      font-size: 0.86rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s, color 0.2s;
+      font-family: inherit;
+    }
+    .consult-type-btns button.active {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #fff;
+    }
+
     /* Success modal */
     .success-box {
       background: var(--card-bg);
@@ -1046,6 +1069,15 @@
         <span id="bkPrice"></span>
         <span id="bkDuration"></span>
 
+        <!-- Consultation Type -->
+        <div class="consult-type-group">
+          <label>Вид консултация</label>
+          <div class="consult-type-btns">
+            <button type="button" id="btnPhysical" class="active" onclick="setConsultType('physical')">🏥 Физическа</button>
+            <button type="button" id="btnOnline"             onclick="setConsultType('online')">💻 Онлайн</button>
+          </div>
+        </div>
+
         <!-- Calendar -->
         <div class="cal-wrap">
           <div class="cal-nav">
@@ -1135,6 +1167,13 @@
   let pendingTimerInterval = null;
   let pendingExpiry = null;
   let calYear, calMonth;
+  let selectedConsultType = 'physical';
+
+  function setConsultType(type) {
+    selectedConsultType = type;
+    document.getElementById('btnPhysical').classList.toggle('active', type === 'physical');
+    document.getElementById('btnOnline').classList.toggle('active', type === 'online');
+  }
 
   const MONTHS_BG = ['Януари','Февруари','Март','Април','Май','Юни','Юли','Август','Септември','Октомври','Ноември','Декември'];
   const DAYS_BG = ['Нед','Пон','Вт','Ср','Чет','Пет','Съб'];
@@ -1653,6 +1692,7 @@
     ['bName','bEmail','bPhone','bComplaint'].forEach(id => {
       const el = document.getElementById(id); if(el) el.value = '';
     });
+    setConsultType('physical');
     const fw = document.getElementById('bookingFormWrap');
     if (fw) fw.style.display = 'none';
   }
@@ -1683,14 +1723,18 @@
       return;
     }
 
+    // Записваме вида на консултацията
+    await db.from('bookings').update({ consultation_type: selectedConsultType }).eq('id', bookingId);
+
     const slotDate    = selectedDate;
     const slotTime    = selectedSlot.time;
     const doctorSnap  = { ...currentDoctor };
+    const consultLabel = selectedConsultType === 'online' ? 'Онлайн' : 'Физическа';
     clearPending();
 
     const emailResults = await Promise.allSettled([
-      sendDoctorEmail(payload, doctorSnap, slotDate, slotTime),
-      sendPatientEmail(payload, doctorSnap, slotDate, slotTime)
+      sendDoctorEmail(payload, doctorSnap, slotDate, slotTime, consultLabel),
+      sendPatientEmail(payload, doctorSnap, slotDate, slotTime, consultLabel)
     ]);
     emailResults.forEach((r, i) => {
       if (r.status === 'rejected') console.error('Email ' + (i===0?'doctor':'patient') + ' failed:', r.reason);
@@ -1701,37 +1745,39 @@
     showSuccessModal(payload.p_patient_name, fmtDate(slotDate), slotTime.slice(0,5), doctorSnap);
   }
 
-  async function sendDoctorEmail(p, doc, date, time) {
+  async function sendDoctorEmail(p, doc, date, time, consultLabel) {
     if (!doc.email) return;
     return emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_DOCTOR_TEMPLATE, {
-      doctor_email:   doc.email,
-      doctor_name:    doc.name,
-      patient_name:   p.p_patient_name,
-      patient_email:  p.p_patient_email,
-      patient_phone:  p.p_patient_phone || 'Не е посочен',
-      complaint:      p.p_complaint     || 'Не е посочено',
-      date:           fmtDate(date),
-      time:           time.slice(0,5),
-      price:          doc.price || 0,
-      duration:       doc.duration || 30,
-      pharmacy_name:  PHARMACY_NAME,
-      pharmacy_phone: PHARMACY_PHONE,
+      doctor_email:      doc.email,
+      doctor_name:       doc.name,
+      patient_name:      p.p_patient_name,
+      patient_email:     p.p_patient_email,
+      patient_phone:     p.p_patient_phone || 'Не е посочен',
+      complaint:         p.p_complaint     || 'Не е посочено',
+      consultation_type: consultLabel || 'Физическа',
+      date:              fmtDate(date),
+      time:              time.slice(0,5),
+      price:             doc.price || 0,
+      duration:          doc.duration || 30,
+      pharmacy_name:     PHARMACY_NAME,
+      pharmacy_phone:    PHARMACY_PHONE,
     });
   }
 
-  async function sendPatientEmail(p, doc, date, time) {
+  async function sendPatientEmail(p, doc, date, time, consultLabel) {
     return emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_PATIENT_TEMPLATE, {
-      patient_email:  p.p_patient_email,
-      patient_name:   p.p_patient_name,
-      doctor_name:    doc.name,
-      specialty:      doc.specialty,
-      date:           fmtDate(date),
-      time:           time.slice(0,5),
-      price:          doc.price || 0,
-      duration:       doc.duration || 30,
-      pharmacy_name:  PHARMACY_NAME,
-      pharmacy_phone: PHARMACY_PHONE,
-      pharmacy_addr:  PHARMACY_ADDR,
+      patient_email:     p.p_patient_email,
+      patient_name:      p.p_patient_name,
+      doctor_name:       doc.name,
+      specialty:         doc.specialty,
+      consultation_type: consultLabel || 'Физическа',
+      date:              fmtDate(date),
+      time:              time.slice(0,5),
+      price:             doc.price || 0,
+      duration:          doc.duration || 30,
+      pharmacy_name:     PHARMACY_NAME,
+      pharmacy_phone:    PHARMACY_PHONE,
+      pharmacy_addr:     PHARMACY_ADDR,
     });
   }
 
