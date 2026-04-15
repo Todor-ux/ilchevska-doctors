@@ -11,6 +11,12 @@ const PHARMACY_NAME = 'Ilchevska Pharmacy';
 const PHARMACY_PHONE = '0301 808 36';
 const PHARMACY_ADDR = 'ul. Trakia 18, kv. Ustovo, Smolyan';
 
+// Shopify магазин URL (за cart линкове в рецептата)
+const SHOPIFY_STORE_URL = 'ilchevsskapharmacy.bg';
+
+// EmailJS template за рецепта (създай нов template в EmailJS)
+const EMAILJS_PRESCRIPTION_TEMPLATE = 'template_dp0zlqn';
+
 function initSupabase() {
     return supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 }

@@ -757,6 +757,7 @@
           <span class="status-badge ${b.status}">${b.status}</span>
           <button onclick="updateStatus('${b.id}','completed')" class="btn-small btn-green">Завърши</button>
           <button onclick="updateStatus('${b.id}','cancelled')" class="btn-small btn-red">Откажи</button>
+          <button onclick="openPrescription('${b.id}','${escHtml(b.patient_name)}','${escHtml(b.patient_email)}')" class="btn-small btn-blue">💊 Рецепта</button>
         </div>
       </div>`).join('');
   }
@@ -1093,6 +1094,210 @@
 
   function prevWeek() { weekOffset--; loadWeekCalendar(); }
   function nextWeek() { weekOffset++; loadWeekCalendar(); }
+
+  // ── PRESCRIPTION ──────────────────────────────────────────
+  let prescriptionData = { bookingId: null, patientName: '', patientEmail: '', items: [] };
+
+  function openPrescription(bookingId, patientName, patientEmail) {
+    prescriptionData = { bookingId, patientName, patientEmail, items: [] };
+    document.getElementById('rxPatientName').textContent = patientName;
+    document.getElementById('rxNotes').value = '';
+    document.getElementById('rxSearch').value = '';
+    document.getElementById('rxSearchResults').innerHTML = '';
+    renderPrescriptionItems();
+    document.getElementById('rxModal').style.display = 'flex';
+  }
+
+  function closeRxModal() {
+    document.getElementById('rxModal').style.display = 'none';
+  }
+
+  function renderPrescriptionItems() {
+    const el = document.getElementById('rxItemsList');
+    if (!prescriptionData.items.length) {
+      el.innerHTML = '<div style="color:var(--muted);font-size:0.85rem;padding:10px 0;">Няма добавени лекарства</div>';
+      return;
+    }
+    el.innerHTML = prescriptionData.items.map((item, i) => `
+      <div class="rx-item">
+        <div class="rx-item-name">💊 <strong>${escHtml(item.product_name)}</strong></div>
+        <div class="rx-item-fields">
+          <input type="text" placeholder="Дозировка (напр. 2 пъти дневно)" value="${escHtml(item.dosage)}"
+            oninput="prescriptionData.items[${i}].dosage=this.value" class="rx-mini-input">
+          <input type="text" placeholder="Продължителност (напр. 7 дни)" value="${escHtml(item.duration)}"
+            oninput="prescriptionData.items[${i}].duration=this.value" class="rx-mini-input">
+          <input type="number" min="1" value="${item.quantity}"
+            oninput="prescriptionData.items[${i}].quantity=parseInt(this.value)||1" class="rx-qty-input">
+          <button onclick="removeRxItem(${i})" class="btn-small btn-red" style="padding:4px 10px;">✕</button>
+        </div>
+      </div>`).join('');
+  }
+
+  function removeRxItem(i) {
+    prescriptionData.items.splice(i, 1);
+    renderPrescriptionItems();
+  }
+
+  let rxSearchTimer = null;
+  async function searchRxProducts() {
+    const query = document.getElementById('rxSearch').value.trim();
+    const resultsEl = document.getElementById('rxSearchResults');
+    if (!query) { resultsEl.innerHTML = ''; return; }
+
+    clearTimeout(rxSearchTimer);
+    rxSearchTimer = setTimeout(async () => {
+      resultsEl.innerHTML = '<div style="color:var(--muted);font-size:0.82rem;padding:8px 12px;">Търсене...</div>';
+
+      const { data: products } = await db
+        .from('pharmacy_products')
+        .select('id, title, price, shopify_variant_id, handle')
+        .eq('is_active', true)
+        .ilike('title', `%${query}%`)
+        .order('title')
+        .limit(8);
+
+      if (!products?.length) {
+        resultsEl.innerHTML = `
+          <div class="rx-result-row">
+            <span class="rx-result-title" style="color:var(--muted);">Няма намерени продукти</span>
+            <button class="rx-add-btn" onclick="addRxItem('${escHtml(query)}','','','',event)">➕ Ръчно</button>
+          </div>`;
+        return;
+      }
+
+      resultsEl.innerHTML = products.map(p => {
+        const safeTitle = escHtml(p.title);
+        const variantId = escHtml(p.shopify_variant_id || '');
+        const handle    = escHtml(p.handle || '');
+        return `
+          <div class="rx-result-row">
+            <div class="rx-result-info">
+              <span class="rx-result-title">💊 ${safeTitle}</span>
+              ${p.price ? `<span class="rx-result-price">${escHtml(p.price)}</span>` : ''}
+            </div>
+            <button class="rx-add-btn" onclick="addRxItem('${safeTitle}','','${variantId}','${handle}',event)">+ Добави</button>
+          </div>`;
+      }).join('');
+    }, 300);
+  }
+
+  function addRxItem(name, productId, variantId, handle, e) {
+    e?.stopPropagation();
+    const product_url = handle ? `https://ilchevsskapharmacy.bg/products/${handle}` : '';
+    prescriptionData.items.push({ product_name: name, shopify_product_id: productId, shopify_variant_id: variantId, product_url, dosage: '', duration: '', quantity: 1 });
+    document.getElementById('rxSearch').value = '';
+    document.getElementById('rxSearchResults').innerHTML = '';
+    renderPrescriptionItems();
+  }
+
+  async function sendPrescription() {
+    if (!prescriptionData.items.length) { alert('Добавете поне едно лекарство.'); return; }
+    const btn = document.getElementById('rxSendBtn');
+    btn.disabled = true;
+    btn.textContent = 'Изпращане...';
+
+    const notes = document.getElementById('rxNotes').value.trim();
+
+    // 1. Save prescription
+    const { data: rx, error: rxErr } = await db.from('prescriptions').insert({
+      booking_id: prescriptionData.bookingId,
+      doctor_id: currentDoctor.id,
+      patient_email: prescriptionData.patientEmail,
+      patient_name: prescriptionData.patientName,
+      notes,
+      status: 'sent'
+    }).select().single();
+
+    if (rxErr) { alert('Грешка: ' + rxErr.message); btn.disabled = false; btn.textContent = 'Изпрати рецептата'; return; }
+
+    // 2. Save items (exclude product_url — not a DB column)
+    const items = prescriptionData.items.map(({ product_url, ...it }) => ({ ...it, prescription_id: rx.id }));
+    const { error: itemsErr } = await db.from('prescription_items').insert(items);
+    if (itemsErr) { alert('Грешка при запис на лекарствата: ' + itemsErr.message); btn.disabled = false; btn.textContent = 'Изпрати рецептата'; return; }
+
+    // 3. Send email
+    const itemsText = prescriptionData.items.map(it =>
+      `• ${it.product_name} — ${it.dosage||'–'}, ${it.duration||'–'}, бр: ${it.quantity}`
+    ).join('\n');
+
+    const prescriptionUrl = `${window.location.origin}/prescription.html?id=${rx.id}`;
+
+    await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_PRESCRIPTION_TEMPLATE, {
+      patient_email: prescriptionData.patientEmail,
+      patient_name:  prescriptionData.patientName,
+      doctor_name:   currentDoctor.name,
+      specialty:     currentDoctor.specialty,
+      items_text:    itemsText,
+      notes:         notes || '–',
+      prescription_url: prescriptionUrl,
+      pharmacy_name:  PHARMACY_NAME,
+      pharmacy_phone: PHARMACY_PHONE,
+    }).catch(() => {});
+
+    closeRxModal();
+    alert(`✓ Рецептата беше изпратена на ${prescriptionData.patientEmail}`);
+    btn.disabled = false;
+    btn.textContent = 'Изпрати рецептата';
+  }
+
+  // Close modal on backdrop click
+  document.getElementById('rxModal')?.addEventListener('click', function(e) {
+    if (e.target === this) closeRxModal();
+  });
 </script>
+
+<!-- PRESCRIPTION MODAL -->
+<div id="rxModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:#fff;border-radius:16px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+    <div style="padding:24px 24px 0;display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <h2 style="font-size:1.15rem;color:var(--primary);">💊 Изпиши рецепта</h2>
+        <p style="font-size:0.82rem;color:var(--muted);margin-top:3px;">Пациент: <strong id="rxPatientName"></strong></p>
+      </div>
+      <button onclick="closeRxModal()" style="background:none;border:none;font-size:1.4rem;cursor:pointer;color:var(--muted);">✕</button>
+    </div>
+
+    <div style="padding:20px 24px;">
+      <!-- Search -->
+      <label style="font-size:0.8rem;font-weight:600;color:var(--text-light);display:block;margin-bottom:6px;">Търси лекарство от аптеката</label>
+      <div style="display:flex;gap:8px;margin-bottom:6px;">
+        <input id="rxSearch" type="text" placeholder="Напр. Аспирин, Ибупрофен..." oninput="searchRxProducts()"
+          style="flex:1;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:0.9rem;outline:none;font-family:inherit;">
+      </div>
+      <div id="rxSearchResults" style="border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:16px;"></div>
+
+      <!-- Items list -->
+      <label style="font-size:0.8rem;font-weight:600;color:var(--text-light);display:block;margin-bottom:8px;">Добавени лекарства</label>
+      <div id="rxItemsList" style="margin-bottom:16px;"></div>
+
+      <!-- Notes -->
+      <label style="font-size:0.8rem;font-weight:600;color:var(--text-light);display:block;margin-bottom:6px;">Бележки към рецептата</label>
+      <textarea id="rxNotes" placeholder="Напр. Приемайте след хранене. Избягвайте алкохол."
+        style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:0.88rem;font-family:inherit;resize:vertical;height:70px;outline:none;"></textarea>
+
+      <!-- Send button -->
+      <button id="rxSendBtn" onclick="sendPrescription()"
+        style="width:100%;margin-top:16px;background:var(--accent);color:#fff;border:none;border-radius:8px;padding:13px;font-size:0.95rem;font-weight:700;cursor:pointer;">
+        Изпрати рецептата
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>
+  .rx-item { background:#f8fafc;border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px; }
+  .rx-item-name { font-size:0.88rem;margin-bottom:8px; }
+  .rx-item-fields { display:flex;gap:6px;flex-wrap:wrap;align-items:center; }
+  .rx-mini-input { flex:1;min-width:140px;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:0.82rem;font-family:inherit;outline:none; }
+  .rx-qty-input { width:60px;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:0.82rem;font-family:inherit;outline:none;text-align:center; }
+  .rx-result-row { display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border); }
+  .rx-result-row:last-child { border-bottom:none; }
+  .rx-result-row:hover { background:#f0f7ff; }
+  .rx-result-info { display:flex;flex-direction:column;gap:2px;min-width:0; }
+  .rx-result-title { font-size:0.87rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+  .rx-result-price { font-size:0.76rem;color:var(--accent);font-weight:600; }
+  .rx-add-btn { flex-shrink:0;background:var(--accent);color:#fff;border:none;border-radius:6px;padding:6px 13px;font-size:0.82rem;font-weight:700;cursor:pointer;white-space:nowrap; }
+  .rx-add-btn:hover { background:var(--accent-dark); }
+</style>
 </body>
 </html>

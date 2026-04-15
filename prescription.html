@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Рецепта – Ilchevska Pharmacy</title>
+  <script src="supabase.min.js"></script>
+  <script src="supabase-config.js"></script>
+  <style>
+    :root {
+      --primary: #0d2d4e;
+      --accent: #2a9d5c;
+      --accent-dark: #1b5e20;
+      --bg: #f0f4f8;
+      --card-bg: #ffffff;
+      --text: #1a2636;
+      --text-light: #4a5568;
+      --muted: #8a9ab0;
+      --border: #dde4ec;
+      --radius: 14px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    .header {
+      background: linear-gradient(135deg, var(--primary) 0%, #1a4570 100%);
+      color: #fff;
+      padding: 20px 24px;
+      text-align: center;
+    }
+    .header .logo { font-size: 2rem; margin-bottom: 4px; }
+    .header h1 { font-size: 1.1rem; font-weight: 800; opacity: 0.95; }
+    .header p { font-size: 0.8rem; opacity: 0.7; margin-top: 2px; }
+
+    .container { max-width: 560px; margin: 0 auto; padding: 24px 16px 40px; }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: var(--radius);
+      box-shadow: 0 2px 16px rgba(13,45,78,0.10);
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+
+    .card-header {
+      background: linear-gradient(135deg, #e8f5ee, #f0faf4);
+      border-bottom: 1px solid var(--border);
+      padding: 18px 20px;
+    }
+    .card-header h2 { font-size: 1rem; color: var(--primary); font-weight: 700; }
+    .card-header .meta { font-size: 0.8rem; color: var(--muted); margin-top: 4px; }
+
+    .card-body { padding: 20px; }
+
+    .info-row { display: flex; justify-content: space-between; font-size: 0.85rem; padding: 6px 0; border-bottom: 1px solid #f0f4f8; }
+    .info-row:last-child { border-bottom: none; }
+    .info-row .label { color: var(--text-light); }
+    .info-row .value { font-weight: 600; color: var(--text); text-align: right; max-width: 60%; }
+
+    .rx-item {
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+    }
+    .rx-item:last-child { margin-bottom: 0; }
+    .rx-item-name { font-weight: 700; font-size: 0.95rem; color: var(--primary); margin-bottom: 8px; }
+    .rx-item-details { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .rx-badge {
+      background: #f0f4f8;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 0.78rem;
+      color: var(--text-light);
+    }
+    .rx-badge strong { color: var(--text); }
+    .btn-add {
+      width: 100%;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 9px 14px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .btn-add:hover { background: var(--accent-dark); }
+    .btn-add:disabled { background: var(--muted); cursor: not-allowed; }
+
+    .btn-order-all {
+      width: 100%;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 14px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-top: 8px;
+    }
+    .btn-order-all:hover { background: #0a2040; }
+    .btn-order-all:disabled { background: var(--muted); cursor: not-allowed; }
+
+    .notes-box {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 0.85rem;
+      color: #92400e;
+      line-height: 1.5;
+    }
+
+    .loading { text-align: center; padding: 60px 20px; color: var(--muted); }
+    .error-state { text-align: center; padding: 60px 20px; }
+    .error-state .icon { font-size: 3rem; margin-bottom: 12px; }
+    .error-state h2 { font-size: 1.1rem; color: var(--primary); margin-bottom: 8px; }
+    .error-state p { font-size: 0.85rem; color: var(--muted); }
+
+    .no-shopify { font-size: 0.78rem; color: var(--muted); text-align: center; margin-top: 6px; }
+
+    @media (max-width: 480px) {
+      .card-body { padding: 16px; }
+      .btn-order-all { font-size: 0.92rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">💊</div>
+  <h1>Ilchevska Pharmacy</h1>
+  <p>Онлайн консултации и аптека</p>
+</div>
+
+<div class="container">
+  <div id="loadingState" class="loading">Зареждане на рецептата...</div>
+  <div id="errorState" class="error-state" style="display:none;">
+    <div class="icon">❌</div>
+    <h2>Рецептата не е намерена</h2>
+    <p>Линкът може да е грешен или рецептата е изтрита.</p>
+  </div>
+  <div id="content" style="display:none;"></div>
+</div>
+
+<script>
+  const db = initSupabase();
+
+  async function loadPrescription() {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id');
+    if (!id) { showError(); return; }
+
+    const { data: rx, error } = await db
+      .from('prescriptions')
+      .select('*, prescription_items(*)')
+      .eq('id', id)
+      .single();
+
+    if (error || !rx) { showError(); return; }
+
+    renderPrescription(rx);
+  }
+
+  function showError() {
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('errorState').style.display = 'block';
+  }
+
+  function renderPrescription(rx) {
+    document.getElementById('loadingState').style.display = 'none';
+    const content = document.getElementById('content');
+    content.style.display = 'block';
+
+    const date = new Date(rx.created_at).toLocaleDateString('bg-BG', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const items = rx.prescription_items || [];
+
+    const itemsHtml = items.map(item => {
+      const variantId = item.shopify_variant_id || '';
+      const cartUrl = variantId
+        ? `https://${SHOPIFY_STORE_URL}/cart/${variantId}:${item.quantity}`
+        : null;
+      const searchUrl = `https://${SHOPIFY_STORE_URL}/search?q=${encodeURIComponent(item.product_name)}`;
+
+      return `
+        <div class="rx-item">
+          <div class="rx-item-name">💊 ${esc(item.product_name)}</div>
+          <div class="rx-item-details">
+            ${item.dosage   ? `<span class="rx-badge">⏰ <strong>${esc(item.dosage)}</strong></span>`   : ''}
+            ${item.duration ? `<span class="rx-badge">📅 <strong>${esc(item.duration)}</strong></span>` : ''}
+            <span class="rx-badge">📦 Брой: <strong>${item.quantity}</strong></span>
+          </div>
+          <a href="${cartUrl || searchUrl}" target="_blank" style="text-decoration:none;">
+            <button class="btn-add">🛒 ${cartUrl ? 'Добави в количката' : 'Намери в аптеката'}</button>
+          </a>
+        </div>`;
+    }).join('');
+
+    // Build "order all" URL — only for items with variant IDs
+    const cartItems = items
+      .filter(it => it.shopify_variant_id)
+      .map(it => `${it.shopify_variant_id}:${it.quantity}`)
+      .join(',');
+    const orderAllHtml = cartItems
+      ? `<a href="https://${SHOPIFY_STORE_URL}/cart/${cartItems}" target="_blank" style="text-decoration:none;display:block;margin-top:16px;">
+           <button class="btn-order-all">🛍️ Поръчай всичко наведнъж</button>
+         </a>`
+      : '';
+
+    content.innerHTML = `
+      <div class="card">
+        <div class="card-header">
+          <h2>📋 Електронна рецепта</h2>
+          <div class="meta">Издадена на ${date}</div>
+        </div>
+        <div class="card-body">
+          <div class="info-row"><span class="label">Пациент</span><span class="value">${esc(rx.patient_name)}</span></div>
+          <div class="info-row"><span class="label">Аптека</span><span class="value">${PHARMACY_NAME}</span></div>
+          <div class="info-row"><span class="label">Телефон</span><span class="value">${PHARMACY_PHONE}</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2>💊 Изписани лекарства</h2>
+          <div class="meta">${items.length} ${items.length === 1 ? 'продукт' : 'продукта'}</div>
+        </div>
+        <div class="card-body">
+          ${itemsHtml}
+          ${orderAllHtml}
+        </div>
+      </div>
+
+      ${rx.notes ? `
+        <div class="card">
+          <div class="card-header"><h2>📝 Бележки от специалиста</h2></div>
+          <div class="card-body">
+            <div class="notes-box">${esc(rx.notes)}</div>
+          </div>
+        </div>` : ''}
+
+      <div style="text-align:center;font-size:0.78rem;color:var(--muted);margin-top:20px;">
+        ${PHARMACY_NAME} · ${PHARMACY_ADDR} · ${PHARMACY_PHONE}
+      </div>`;
+  }
+
+  function esc(str) {
+    if (!str) return '';
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  loadPrescription();
+</script>
+</body>
+</html>

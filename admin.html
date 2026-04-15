@@ -523,6 +523,9 @@
       <button class="sidebar-link" data-tab="reviews" onclick="loadTab('reviews')">
         <span class="nav-icon">⭐</span> Отзиви
       </button>
+      <button class="sidebar-link" data-tab="products" onclick="loadTab('products')">
+        <span class="nav-icon">💊</span> Продукти
+      </button>
     </div>
     <div class="sidebar-footer">
       <button class="btn-logout" onclick="adminLogout()">🚪 Изход</button>
@@ -540,6 +543,9 @@
       </button>
       <button class="bottom-nav-btn" data-tab="reviews" onclick="loadTab('reviews')">
         <span class="bn-icon">⭐</span>Отзиви
+      </button>
+      <button class="bottom-nav-btn" data-tab="products" onclick="loadTab('products')">
+        <span class="bn-icon">💊</span>Продукти
       </button>
       <button class="bottom-nav-btn" onclick="adminLogout()">
         <span class="bn-icon">🚪</span>Изход
@@ -631,6 +637,65 @@
           </thead>
           <tbody id="reviewsList">
             <tr class="empty-row"><td colspan="7">Зареждане...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PRODUCTS TAB -->
+    <div id="tab-products" class="tab-content" style="display:none">
+      <div class="tab-header">
+        <h2>💊 Продукти от аптеката</h2>
+        <button class="btn-action btn-green" onclick="openProductModal()">+ Добави продукт</button>
+      </div>
+
+      <!-- Add/Edit form -->
+      <div id="productForm" style="display:none;background:#f8fafc;border:1.5px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px;">
+        <h3 style="font-size:1rem;color:var(--primary);margin-bottom:16px;" id="productFormTitle">Нов продукт</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group" style="grid-column:1/-1;">
+            <label>Наименование *</label>
+            <input id="pTitle" type="text" placeholder="напр. Аспирин Протект 100мг 56 таблетки">
+          </div>
+          <div class="form-group">
+            <label>Цена (напр. 8.50 лв.)</label>
+            <input id="pPrice" type="text" placeholder="8.50 лв.">
+          </div>
+          <div class="form-group">
+            <label>Shopify Variant ID</label>
+            <input id="pVariantId" type="text" placeholder="за бутон Добави в количката">
+          </div>
+          <div class="form-group" style="grid-column:1/-1;">
+            <label>Shopify Handle (URL)</label>
+            <input id="pHandle" type="text" placeholder="aspirin-protect-100mg (от URL на продукта)">
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:4px;">
+          <button class="btn-action btn-green" onclick="saveProduct()">💾 Запази</button>
+          <button class="btn-action" onclick="closeProductForm()" style="background:#f0f4f8;color:var(--text);">Отказ</button>
+        </div>
+        <input type="hidden" id="pEditId">
+      </div>
+
+      <!-- Search -->
+      <div style="margin-bottom:14px;">
+        <input type="text" id="productSearch" placeholder="🔍 Търси продукт..." oninput="filterProducts()"
+          style="width:100%;max-width:380px;border:1.5px solid var(--border);border-radius:8px;padding:9px 13px;font-size:0.9rem;outline:none;font-family:inherit;">
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Наименование</th>
+              <th>Цена</th>
+              <th>Variant ID</th>
+              <th>Активен</th>
+              <th>Действия</th>
+            </tr>
+          </thead>
+          <tbody id="productsList">
+            <tr class="empty-row"><td colspan="5">Зареждане...</td></tr>
           </tbody>
         </table>
       </div>
@@ -860,6 +925,100 @@
     location.reload();
   }
 
+  // ── PRODUCTS CRUD ─────────────────────────────────────
+  let allProducts = [];
+
+  async function loadProducts() {
+    const { data } = await db.from('pharmacy_products').select('*').order('title');
+    allProducts = data || [];
+    renderProducts(allProducts);
+  }
+
+  function renderProducts(products) {
+    const el = document.getElementById('productsList');
+    if (!products.length) {
+      el.innerHTML = '<tr class="empty-row"><td colspan="5">Няма добавени продукти</td></tr>';
+      return;
+    }
+    el.innerHTML = products.map(p => `
+      <tr>
+        <td><strong>${escHtml(p.title)}</strong></td>
+        <td>${escHtml(p.price || '–')}</td>
+        <td style="font-size:0.78rem;color:var(--muted);">${p.shopify_variant_id ? p.shopify_variant_id : '–'}</td>
+        <td>
+          <button onclick="toggleProductActive('${p.id}',${p.is_active})"
+            class="badge ${p.is_active ? 'badge-active' : 'badge-inactive'}" style="cursor:pointer;border:none;">
+            ${p.is_active ? 'Активен' : 'Неактивен'}
+          </button>
+        </td>
+        <td>
+          <button onclick="openProductModal('${p.id}')" class="btn-action btn-edit">✏️</button>
+          <button onclick="deleteProduct('${p.id}','${escHtml(p.title)}')" class="btn-action btn-delete">🗑️</button>
+        </td>
+      </tr>`).join('');
+  }
+
+  function filterProducts() {
+    const q = document.getElementById('productSearch').value.toLowerCase();
+    renderProducts(allProducts.filter(p => p.title.toLowerCase().includes(q)));
+  }
+
+  function openProductModal(id) {
+    const form = document.getElementById('productForm');
+    form.style.display = 'block';
+    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (id) {
+      const p = allProducts.find(x => x.id === id);
+      if (!p) return;
+      document.getElementById('productFormTitle').textContent = 'Редактирай продукт';
+      document.getElementById('pEditId').value = p.id;
+      document.getElementById('pTitle').value = p.title || '';
+      document.getElementById('pPrice').value = p.price || '';
+      document.getElementById('pVariantId').value = p.shopify_variant_id || '';
+      document.getElementById('pHandle').value = p.handle || '';
+    } else {
+      document.getElementById('productFormTitle').textContent = 'Нов продукт';
+      document.getElementById('pEditId').value = '';
+      document.getElementById('pTitle').value = '';
+      document.getElementById('pPrice').value = '';
+      document.getElementById('pVariantId').value = '';
+      document.getElementById('pHandle').value = '';
+    }
+  }
+
+  function closeProductForm() {
+    document.getElementById('productForm').style.display = 'none';
+  }
+
+  async function saveProduct() {
+    const title = document.getElementById('pTitle').value.trim();
+    if (!title) { alert('Въведи наименование'); return; }
+    const payload = {
+      title,
+      price:               document.getElementById('pPrice').value.trim() || null,
+      shopify_variant_id:  document.getElementById('pVariantId').value.trim() || null,
+      handle:              document.getElementById('pHandle').value.trim() || null,
+    };
+    const editId = document.getElementById('pEditId').value;
+    const { error } = editId
+      ? await db.from('pharmacy_products').update(payload).eq('id', editId)
+      : await db.from('pharmacy_products').insert(payload);
+    if (error) { alert('Грешка: ' + error.message); return; }
+    closeProductForm();
+    loadProducts();
+  }
+
+  async function toggleProductActive(id, current) {
+    await db.from('pharmacy_products').update({ is_active: !current }).eq('id', id);
+    loadProducts();
+  }
+
+  async function deleteProduct(id, title) {
+    if (!confirm(`Изтрий "${title}"?`)) return;
+    await db.from('pharmacy_products').delete().eq('id', id);
+    loadProducts();
+  }
+
   function showAdmin() {
     document.getElementById('loginPage').style.display = 'none';
     document.getElementById('adminPage').style.display = 'flex';
@@ -871,10 +1030,11 @@
     document.querySelectorAll('.sidebar-link, .bottom-nav-btn').forEach(el => el.classList.remove('active'));
     document.getElementById('tab-' + tab).style.display = 'block';
     document.querySelectorAll(`[data-tab="${tab}"]`).forEach(el => el.classList.add('active'));
-    if      (tab === 'doctors')  loadDoctors();
-    else if (tab === 'bookings') loadAllBookings();
-    else if (tab === 'reviews')  loadAllReviews();
+    if      (tab === 'doctors')      loadDoctors();
+    else if (tab === 'bookings')     loadAllBookings();
+    else if (tab === 'reviews')      loadAllReviews();
     else if (tab === 'applications') loadApplications();
+    else if (tab === 'products')     loadProducts();
   }
 
   // ── DOCTORS CRUD ──────────────────────────────────────
