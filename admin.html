@@ -1099,20 +1099,18 @@
 
     progressEl.textContent = `⏳ Вкарване на ${products.length} продукта...`;
 
-    // First clear old bad data, then insert fresh
-    await db.from('pharmacy_products').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-
     const BATCH = 100;
     let inserted = 0;
     for (let i = 0; i < products.length; i += BATCH) {
-      const { error } = await db.from('pharmacy_products').insert(products.slice(i, i + BATCH));
+      const { error } = await db.from('pharmacy_products')
+        .upsert(products.slice(i, i + BATCH), { onConflict: 'title', ignoreDuplicates: true });
       if (error) {
         progressEl.style.cssText = 'display:block;background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:0.88rem;color:#991b1b;';
         progressEl.textContent = '❌ Грешка: ' + error.message;
         return;
       }
-      inserted += BATCH;
-      progressEl.textContent = `⏳ Вкарани ${Math.min(inserted, products.length)} / ${products.length}...`;
+      inserted = Math.min(i + BATCH, products.length);
+      progressEl.textContent = `⏳ Вкарани ${inserted} / ${products.length}...`;
     }
 
     progressEl.textContent = `✅ Успешно вкарани ${products.length} продукта от Shopify!`;
