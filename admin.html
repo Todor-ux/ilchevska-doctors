@@ -646,8 +646,15 @@
     <div id="tab-products" class="tab-content" style="display:none">
       <div class="tab-header">
         <h2>💊 Продукти от аптеката</h2>
-        <button class="btn-action btn-green" onclick="openProductModal()">+ Добави продукт</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <label class="btn-action btn-blue" style="cursor:pointer;margin:0;">
+            📥 Импорт от Shopify CSV
+            <input type="file" accept=".csv" onchange="importShopifyCSV(event)" style="display:none;">
+          </label>
+          <button class="btn-action btn-green" onclick="openProductModal()">+ Добави продукт</button>
+        </div>
       </div>
+      <div id="importProgress" style="display:none;background:#f0faf4;border:1px solid #a7f3d0;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:0.88rem;color:#065f46;"></div>
 
       <!-- Add/Edit form -->
       <div id="productForm" style="display:none;background:#f8fafc;border:1.5px solid var(--border);border-radius:12px;padding:20px;margin-bottom:20px;">
@@ -1016,6 +1023,85 @@
   async function deleteProduct(id, title) {
     if (!confirm(`Изтрий "${title}"?`)) return;
     await db.from('pharmacy_products').delete().eq('id', id);
+    loadProducts();
+  }
+
+  async function importShopifyCSV(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    event.target.value = '';
+
+    const progressEl = document.getElementById('importProgress');
+    progressEl.style.display = 'block';
+    progressEl.textContent = '⏳ Четене на файла...';
+
+    const text = await file.text();
+    const lines = text.split('\n');
+    const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+
+    // Find column indexes from Shopify CSV
+    const idx = {
+      title:     headers.findIndex(h => h === 'Title'),
+      handle:    headers.findIndex(h => h === 'Handle'),
+      price:     headers.findIndex(h => h === 'Variant Price'),
+      variantId: headers.findIndex(h => h === 'Variant ID'),
+    };
+
+    if (idx.title === -1) {
+      progressEl.style.background = '#fef2f2';
+      progressEl.style.borderColor = '#fca5a5';
+      progressEl.style.color = '#991b1b';
+      progressEl.textContent = '❌ Не намерих колона "Title". Провери дали файлът е Shopify CSV.';
+      return;
+    }
+
+    const parseCell = (row, i) => i >= 0 ? (row[i] || '').replace(/^"|"$/g, '').trim() : '';
+
+    // Parse rows — keep only rows where Title is not empty (one per product)
+    const products = [];
+    const seen = new Set();
+    for (let i = 1; i < lines.length; i++) {
+      if (!lines[i].trim()) continue;
+      // Handle quoted commas in CSV
+      const row = lines[i].match(/(".*?"|[^",]+)(?=,|$)/g) || lines[i].split(',');
+      const title = parseCell(row, idx.title);
+      if (!title || seen.has(title)) continue;
+      seen.add(title);
+      products.push({
+        title,
+        handle:             parseCell(row, idx.handle) || null,
+        price:              parseCell(row, idx.price)  || null,
+        shopify_variant_id: parseCell(row, idx.variantId) || null,
+        is_active: true,
+      });
+    }
+
+    if (!products.length) {
+      progressEl.textContent = '❌ Няма намерени продукти в файла.';
+      return;
+    }
+
+    progressEl.textContent = `⏳ Вкарване на ${products.length} продукта...`;
+
+    // Insert in batches of 100
+    const BATCH = 100;
+    let inserted = 0;
+    for (let i = 0; i < products.length; i += BATCH) {
+      const batch = products.slice(i, i + BATCH);
+      const { error } = await db.from('pharmacy_products')
+        .upsert(batch, { onConflict: 'title', ignoreDuplicates: true });
+      if (error) {
+        progressEl.style.background = '#fef2f2';
+        progressEl.style.borderColor = '#fca5a5';
+        progressEl.style.color = '#991b1b';
+        progressEl.textContent = '❌ Грешка: ' + error.message;
+        return;
+      }
+      inserted += batch.length;
+      progressEl.textContent = `⏳ Вкарани ${inserted} / ${products.length}...`;
+    }
+
+    progressEl.textContent = `✅ Успешно вкарани ${products.length} продукта от Shopify!`;
     loadProducts();
   }
 
