@@ -1103,7 +1103,7 @@
     let inserted = 0;
     for (let i = 0; i < products.length; i += BATCH) {
       const { error } = await db.from('pharmacy_products')
-        .upsert(products.slice(i, i + BATCH), { onConflict: 'handle', ignoreDuplicates: true });
+        .insert(products.slice(i, i + BATCH));
       if (error) {
         progressEl.style.cssText = 'display:block;background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:0.88rem;color:#991b1b;';
         progressEl.textContent = '❌ Грешка: ' + error.message;
