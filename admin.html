@@ -1026,79 +1026,93 @@
     loadProducts();
   }
 
+  // Proper CSV parser that handles multi-line quoted fields
+  function parseCSVText(text) {
+    const rows = [];
+    let row = [], field = '', inQuotes = false;
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i], nx = text[i + 1];
+      if (inQuotes) {
+        if (ch === '"' && nx === '"') { field += '"'; i++; }
+        else if (ch === '"') { inQuotes = false; }
+        else { field += ch; }
+      } else {
+        if (ch === '"') { inQuotes = true; }
+        else if (ch === ',') { row.push(field); field = ''; }
+        else if (ch === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+        else if (ch !== '\r') { field += ch; }
+      }
+    }
+    if (row.length || field) { row.push(field); rows.push(row); }
+    return rows;
+  }
+
   async function importShopifyCSV(event) {
     const file = event.target.files[0];
     if (!file) return;
     event.target.value = '';
 
     const progressEl = document.getElementById('importProgress');
-    progressEl.style.display = 'block';
+    progressEl.style.cssText = 'display:block;background:#f0faf4;border:1px solid #a7f3d0;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:0.88rem;color:#065f46;';
     progressEl.textContent = '⏳ Четене на файла...';
 
     const text = await file.text();
-    const lines = text.split('\n');
-    const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
+    const rows = parseCSVText(text);
+    if (rows.length < 2) { progressEl.textContent = '❌ Файлът е празен.'; return; }
 
-    // Find column indexes from Shopify CSV
+    const headers = rows[0];
     const idx = {
-      title:     headers.findIndex(h => h === 'Title'),
-      handle:    headers.findIndex(h => h === 'Handle'),
-      price:     headers.findIndex(h => h === 'Variant Price'),
-      variantId: headers.findIndex(h => h === 'Variant ID'),
+      title:     headers.indexOf('Title'),
+      handle:    headers.indexOf('Handle'),
+      price:     headers.indexOf('Variant Price'),
+      variantId: headers.indexOf('Variant ID'),
     };
 
     if (idx.title === -1) {
-      progressEl.style.background = '#fef2f2';
-      progressEl.style.borderColor = '#fca5a5';
-      progressEl.style.color = '#991b1b';
+      progressEl.style.cssText = 'display:block;background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:0.88rem;color:#991b1b;';
       progressEl.textContent = '❌ Не намерих колона "Title". Провери дали файлът е Shopify CSV.';
       return;
     }
 
-    const parseCell = (row, i) => i >= 0 ? (row[i] || '').replace(/^"|"$/g, '').trim() : '';
+    const cell = (row, i) => i >= 0 ? (row[i] || '').trim() : '';
 
-    // Parse rows — keep only rows where Title is not empty (one per product)
+    // One product per unique handle (first row with non-empty title)
     const products = [];
     const seen = new Set();
-    for (let i = 1; i < lines.length; i++) {
-      if (!lines[i].trim()) continue;
-      // Handle quoted commas in CSV
-      const row = lines[i].match(/(".*?"|[^",]+)(?=,|$)/g) || lines[i].split(',');
-      const title = parseCell(row, idx.title);
-      if (!title || seen.has(title)) continue;
-      seen.add(title);
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      const title  = cell(row, idx.title);
+      const handle = cell(row, idx.handle);
+      const key    = handle || title;
+      if (!title || !key || seen.has(key)) continue;
+      seen.add(key);
       products.push({
         title,
-        handle:             parseCell(row, idx.handle) || null,
-        price:              parseCell(row, idx.price)  || null,
-        shopify_variant_id: parseCell(row, idx.variantId) || null,
+        handle:             handle || null,
+        price:              cell(row, idx.price) || null,
+        shopify_variant_id: cell(row, idx.variantId) || null,
         is_active: true,
       });
     }
 
-    if (!products.length) {
-      progressEl.textContent = '❌ Няма намерени продукти в файла.';
-      return;
-    }
+    if (!products.length) { progressEl.textContent = '❌ Няма намерени продукти.'; return; }
 
     progressEl.textContent = `⏳ Вкарване на ${products.length} продукта...`;
 
-    // Insert in batches of 100
+    // First clear old bad data, then insert fresh
+    await db.from('pharmacy_products').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+
     const BATCH = 100;
     let inserted = 0;
     for (let i = 0; i < products.length; i += BATCH) {
-      const batch = products.slice(i, i + BATCH);
-      const { error } = await db.from('pharmacy_products')
-        .upsert(batch, { onConflict: 'title', ignoreDuplicates: true });
+      const { error } = await db.from('pharmacy_products').insert(products.slice(i, i + BATCH));
       if (error) {
-        progressEl.style.background = '#fef2f2';
-        progressEl.style.borderColor = '#fca5a5';
-        progressEl.style.color = '#991b1b';
+        progressEl.style.cssText = 'display:block;background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:12px 16px;margin-bottom:16px;font-size:0.88rem;color:#991b1b;';
         progressEl.textContent = '❌ Грешка: ' + error.message;
         return;
       }
-      inserted += batch.length;
-      progressEl.textContent = `⏳ Вкарани ${inserted} / ${products.length}...`;
+      inserted += BATCH;
+      progressEl.textContent = `⏳ Вкарани ${Math.min(inserted, products.length)} / ${products.length}...`;
     }
 
     progressEl.textContent = `✅ Успешно вкарани ${products.length} продукта от Shopify!`;
