@@ -343,6 +343,23 @@
     .bottom-nav-btn.active { color: var(--accent-light); }
     .bottom-nav-btn:active { opacity: 0.7; }
 
+    /* ── NEW FEATURE STYLES ─────────────────────────── */
+    .btn-recurring { background: var(--primary-light); color: #fff; border: none; border-radius: 8px; padding: 9px 18px; font-size: 0.88rem; font-weight: 700; cursor: pointer; margin-bottom: 16px; transition: opacity 0.2s; }
+    .btn-recurring:hover { opacity: 0.85; }
+    .btn-purple { background: #ede9fe; color: #5b21b6; }
+    .btn-purple:hover { background: #ddd6fe; }
+    .history-panel { background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-top: 8px; display: none; }
+    .history-section { margin-bottom: 14px; }
+    .history-section h4 { font-size: 0.85rem; color: var(--primary); font-weight: 700; margin-bottom: 8px; }
+    .history-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f0f4f8; font-size: 0.82rem; }
+    .history-note { background: #fffbeb; border-radius: 8px; padding: 10px; margin-bottom: 8px; font-size: 0.82rem; }
+    .history-rx { font-size: 0.82rem; padding: 5px 0; border-bottom: 1px solid #f0f4f8; }
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; padding: 16px; }
+    .modal-box { background: #fff; border-radius: 16px; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3); padding: 28px 28px 24px; }
+    .modal-box h3 { font-size: 1.1rem; color: var(--primary); font-weight: 700; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .modal-close { background: none; border: none; font-size: 1.4rem; cursor: pointer; color: var(--muted); }
+
     /* ── MOBILE ──────────────────────────────────────── */
     @media (max-width: 700px) {
       /* Prevent ALL horizontal overflow */
@@ -511,6 +528,9 @@
         <h2>Управление на часове</h2>
         <p>Визуален седмичен календар за резервации</p>
       </div>
+
+      <!-- Recurring slots button -->
+      <button class="btn-recurring" onclick="openRecurringModal()">🔄 Добави повтарящи се часове</button>
 
       <!-- Week navigation -->
       <div class="week-nav">
@@ -755,10 +775,13 @@
         ${b.complaint ? `<div class="booking-complaint">💬 ${escHtml(b.complaint)}</div>` : ''}
         <div class="booking-actions">
           <span class="status-badge ${b.status}">${b.status}</span>
-          <button onclick="updateStatus('${b.id}','completed')" class="btn-small btn-green">Завърши</button>
-          <button onclick="updateStatus('${b.id}','cancelled')" class="btn-small btn-red">Откажи</button>
+          ${b.status !== 'completed' && b.status !== 'cancelled' ? `<button onclick="completeConsultation('${b.id}','${escHtml(b.patient_email)}','${escHtml(b.patient_name)}')" class="btn-small btn-green">✅ Завърши</button>` : ''}
+          ${b.status !== 'completed' && b.status !== 'cancelled' ? `<button onclick="updateStatus('${b.id}','cancelled')" class="btn-small btn-red">Откажи</button>` : ''}
           <button onclick="openPrescription('${b.id}','${escHtml(b.patient_name)}','${escHtml(b.patient_email)}')" class="btn-small btn-blue">💊 Рецепта</button>
+          <button onclick="openNotesModal('${b.id}','${escHtml(b.patient_email)}','${escHtml(b.patient_name)}')" class="btn-small btn-purple">📝 Бележки</button>
+          <button onclick="toggleHistory('${b.id}','${escHtml(b.patient_email)}')" class="btn-small btn-orange">📋 История</button>
         </div>
+        <div id="hist-${b.id}" class="history-panel"></div>
       </div>`).join('');
   }
 
@@ -1244,7 +1267,286 @@
   document.getElementById('rxModal')?.addEventListener('click', function(e) {
     if (e.target === this) closeRxModal();
   });
+
+  // ══════════════════════════════════════════════════════
+  // F1 — ПОВТАРЯЩИ СЕ ЧАСОВЕ
+  // ══════════════════════════════════════════════════════
+  function openRecurringModal() {
+    document.getElementById('recurMsg').textContent = '';
+    document.getElementById('recurringModal').style.display = 'flex';
+  }
+  function closeRecurringModal() {
+    document.getElementById('recurringModal').style.display = 'none';
+  }
+
+  async function generateRecurringSlots() {
+    const dayOfWeek = parseInt(document.getElementById('recurDay').value); // 1=Пон..6=Съб
+    const start     = document.getElementById('recurStart').value;
+    const end       = document.getElementById('recurEnd').value;
+    const duration  = parseInt(document.getElementById('recurDuration').value);
+    const weeks     = parseInt(document.getElementById('recurWeeks').value);
+    const msgEl     = document.getElementById('recurMsg');
+    msgEl.textContent = '';
+
+    if (!start || !end) { msgEl.style.color='#e53e3e'; msgEl.textContent='Изберете начален и краен час'; return; }
+    if (timeToMins(start) >= timeToMins(end)) { msgEl.style.color='#e53e3e'; msgEl.textContent='Крайният час трябва да е след началния'; return; }
+
+    const slots = [];
+    const today = new Date(); today.setHours(0,0,0,0);
+
+    for (let offset = 0; offset < weeks * 7; offset++) {
+      const d = new Date(today); d.setDate(today.getDate() + offset);
+      const jsDay = d.getDay(); // 0=Sun
+      const ourDay = jsDay === 0 ? 7 : jsDay; // 1=Mon..7=Sun
+      if (ourDay !== dayOfWeek) continue;
+      let cur = timeToMins(start);
+      const endMins = timeToMins(end);
+      while (cur < endMins) {
+        slots.push({ doctor_id: currentDoctor.id, date: dateToStr(d), time: minsToTime(cur) + ':00' });
+        cur += duration;
+      }
+    }
+
+    if (!slots.length) { msgEl.style.color='#e53e3e'; msgEl.textContent='Не са намерени подходящи дати'; return; }
+
+    const { error } = await db.from('time_slots').upsert(slots, { onConflict: 'doctor_id,date,time', ignoreDuplicates: true });
+    if (error) { msgEl.style.color='#e53e3e'; msgEl.textContent='Грешка: ' + error.message; return; }
+
+    msgEl.style.color = '#2a9d5c';
+    msgEl.textContent = `✓ Добавени ${slots.length} слота за ${weeks} седмици напред`;
+    await loadWeekCalendar();
+  }
+
+  // ══════════════════════════════════════════════════════
+  // F4 — КРИПТИРАНИ БЕЛЕЖКИ (Web Crypto API)
+  // ══════════════════════════════════════════════════════
+  async function getNotesKey(doctorId) {
+    const enc = new TextEncoder();
+    const km = await crypto.subtle.importKey('raw', enc.encode(doctorId + '_ilchevska_notes_key'), { name: 'PBKDF2' }, false, ['deriveKey']);
+    return crypto.subtle.deriveKey(
+      { name: 'PBKDF2', salt: enc.encode('ilchevska_salt'), iterations: 100000, hash: 'SHA-256' },
+      km, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']
+    );
+  }
+
+  async function encryptNote(text, doctorId) {
+    const key = await getNotesKey(doctorId);
+    const enc = new TextEncoder();
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, enc.encode(text));
+    const combined = new Uint8Array(12 + encrypted.byteLength);
+    combined.set(iv, 0); combined.set(new Uint8Array(encrypted), 12);
+    return btoa(String.fromCharCode(...combined));
+  }
+
+  async function decryptNote(b64, doctorId) {
+    try {
+      const key = await getNotesKey(doctorId);
+      const combined = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+      const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: combined.slice(0, 12) }, key, combined.slice(12));
+      return new TextDecoder().decode(decrypted);
+    } catch { return '[Не може да се декриптира]'; }
+  }
+
+  let currentNote = { bookingId: null, patientEmail: '', patientName: '' };
+
+  async function openNotesModal(bookingId, patientEmail, patientName) {
+    currentNote = { bookingId, patientEmail, patientName };
+    document.getElementById('notesPatientName').textContent = patientName;
+    document.getElementById('notesText').value = '';
+    document.getElementById('notesSaveMsg').textContent = '';
+    const { data } = await db.from('consultation_notes')
+      .select('notes_encrypted').eq('booking_id', bookingId).eq('doctor_id', currentDoctor.id).maybeSingle();
+    if (data?.notes_encrypted) {
+      document.getElementById('notesText').value = await decryptNote(data.notes_encrypted, currentDoctor.id);
+    }
+    document.getElementById('notesModal').style.display = 'flex';
+  }
+
+  function closeNotesModal() { document.getElementById('notesModal').style.display = 'none'; }
+
+  async function saveNote() {
+    const text = document.getElementById('notesText').value.trim();
+    const msgEl = document.getElementById('notesSaveMsg');
+    if (!text) { msgEl.style.color='#e53e3e'; msgEl.textContent='Напишете бележка'; return; }
+    const encrypted = await encryptNote(text, currentDoctor.id);
+    const { error } = await db.from('consultation_notes').upsert({
+      booking_id: currentNote.bookingId,
+      doctor_id: currentDoctor.id,
+      patient_email: currentNote.patientEmail,
+      notes_encrypted: encrypted,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'booking_id,doctor_id' });
+    if (error) { msgEl.style.color='#e53e3e'; msgEl.textContent='Грешка: ' + error.message; return; }
+    msgEl.style.color = '#2a9d5c'; msgEl.textContent = '✓ Запазено';
+    setTimeout(() => { msgEl.textContent = ''; }, 2500);
+  }
+
+  // ══════════════════════════════════════════════════════
+  // F7 — ЗАВЪРШИ КОНСУЛТАЦИЯ + ИМЕЙЛ ЗА ОТЗИВ
+  // ══════════════════════════════════════════════════════
+  async function completeConsultation(bookingId, patientEmail, patientName) {
+    if (!confirm(`Завърши консултацията с ${patientName}?`)) return;
+    const { error } = await db.from('bookings').update({
+      status: 'completed',
+      completed_at: new Date().toISOString(),
+      review_email_sent: true
+    }).eq('id', bookingId);
+    if (error) { alert('Грешка: ' + error.message); return; }
+
+    const reviewLink = `${window.location.origin}/index.html?review=${currentDoctor.id}`;
+    emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_REVIEW_REQUEST_TEMPLATE, {
+      to_email:     patientEmail,
+      patient_name: patientName,
+      doctor_name:  currentDoctor.name,
+      specialty:    currentDoctor.specialty,
+      review_link:  reviewLink,
+      pharmacy_name:  PHARMACY_NAME,
+      pharmacy_phone: PHARMACY_PHONE,
+    }).catch(() => {});
+
+    loadTodayBookings();
+    loadWeekBookings();
+  }
+
+  // ══════════════════════════════════════════════════════
+  // F9 — ИСТОРИЯ НА ПАЦИЕНТА
+  // ══════════════════════════════════════════════════════
+  async function toggleHistory(bookingId, patientEmail) {
+    const panel = document.getElementById('hist-' + bookingId);
+    if (!panel) return;
+    if (panel.style.display === 'block') { panel.style.display = 'none'; return; }
+    panel.style.display = 'block';
+    panel.innerHTML = '<div style="color:var(--muted);font-size:0.82rem;padding:6px 0;">Зарежда историята...</div>';
+    await loadPatientHistory(patientEmail, bookingId);
+  }
+
+  async function loadPatientHistory(patientEmail, bookingId) {
+    const [{ data: pastBookings }, { data: notes }, { data: prescriptions }] = await Promise.all([
+      db.from('bookings').select('*, time_slots(date, time)')
+        .eq('doctor_id', currentDoctor.id).eq('patient_email', patientEmail)
+        .eq('status', 'completed').order('created_at', { ascending: false }).limit(10),
+      db.from('consultation_notes').select('*')
+        .eq('doctor_id', currentDoctor.id).eq('patient_email', patientEmail)
+        .order('created_at', { ascending: false }),
+      db.from('prescriptions').select('*, prescription_items(product_name)')
+        .eq('doctor_id', currentDoctor.id).eq('patient_email', patientEmail)
+        .order('created_at', { ascending: false })
+    ]);
+
+    const decryptedNotes = await Promise.all(
+      (notes || []).map(async n => ({ ...n, plain: await decryptNote(n.notes_encrypted, currentDoctor.id) }))
+    );
+
+    renderPatientHistory('hist-' + bookingId, pastBookings, decryptedNotes, prescriptions);
+  }
+
+  function renderPatientHistory(containerId, bookings, notes, prescriptions) {
+    const el = document.getElementById(containerId);
+    let html = '';
+
+    if (bookings?.length) {
+      html += `<div class="history-section">
+        <h4>📅 Минали консултации (${bookings.length})</h4>
+        ${bookings.map(b => `<div class="history-item">
+          <span>${b.time_slots?.date || '?'} ${b.time_slots?.time?.slice(0,5) || ''}</span>
+          <span style="color:var(--muted)">${escHtml(b.complaint || '—')}</span>
+        </div>`).join('')}
+      </div>`;
+    }
+
+    if (notes?.length) {
+      html += `<div class="history-section">
+        <h4>📝 Бележки</h4>
+        ${notes.map(n => `<div class="history-note">
+          <small style="color:var(--muted)">${new Date(n.created_at).toLocaleDateString('bg-BG')}</small>
+          <p style="margin-top:4px;">${escHtml(n.plain || '')}</p>
+        </div>`).join('')}
+      </div>`;
+    }
+
+    if (prescriptions?.length) {
+      html += `<div class="history-section">
+        <h4>💊 Изписани рецепти</h4>
+        ${prescriptions.map(p => `<div class="history-rx">
+          ${new Date(p.created_at).toLocaleDateString('bg-BG')} —
+          ${(p.prescription_items || []).map(i => escHtml(i.product_name)).join(', ') || '—'}
+        </div>`).join('')}
+      </div>`;
+    }
+
+    el.innerHTML = html || '<p style="color:var(--muted);font-size:0.82rem;padding:6px 0;">Първа консултация с този пациент</p>';
+  }
 </script>
+
+<!-- RECURRING SLOTS MODAL -->
+<div id="recurringModal" class="modal-overlay" onclick="if(event.target===this)closeRecurringModal()">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>🔄 Повтарящи се часове</h3>
+      <button onclick="closeRecurringModal()" class="modal-close">✕</button>
+    </div>
+    <div class="form-group">
+      <label>Ден от седмицата</label>
+      <select id="recurDay">
+        <option value="1">Понеделник</option>
+        <option value="2">Вторник</option>
+        <option value="3">Сряда</option>
+        <option value="4">Четвъртък</option>
+        <option value="5">Петък</option>
+        <option value="6">Събота</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Начален час</label>
+        <input id="recurStart" type="time" value="09:00" step="1800">
+      </div>
+      <div class="form-group">
+        <label>Краен час</label>
+        <input id="recurEnd" type="time" value="17:00" step="1800">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Продължителност на слот</label>
+        <select id="recurDuration">
+          <option value="30">30 мин</option>
+          <option value="45">45 мин</option>
+          <option value="60">60 мин</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Седмици напред</label>
+        <select id="recurWeeks">
+          <option value="2">2 седмици</option>
+          <option value="4" selected>4 седмици</option>
+          <option value="6">6 седмици</option>
+          <option value="8">8 седмици</option>
+        </select>
+      </div>
+    </div>
+    <button onclick="generateRecurringSlots()" class="btn-primary" style="margin-top:12px;">Генерирай часове</button>
+    <div id="recurMsg" class="save-msg" style="margin-top:10px;"></div>
+  </div>
+</div>
+
+<!-- NOTES MODAL -->
+<div id="notesModal" class="modal-overlay" onclick="if(event.target===this)closeNotesModal()">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>📝 Бележки за консултацията</h3>
+      <button onclick="closeNotesModal()" class="modal-close">✕</button>
+    </div>
+    <p style="font-size:0.82rem;color:var(--muted);margin-bottom:16px;">Пациент: <strong id="notesPatientName"></strong></p>
+    <div class="form-group">
+      <label>Бележки (криптирани, видими само за вас)</label>
+      <textarea id="notesText" rows="6" placeholder="Симптоми, наблюдения, план за лечение..."></textarea>
+    </div>
+    <button onclick="saveNote()" class="btn-primary" style="width:auto;padding:10px 24px;">💾 Запази</button>
+    <div id="notesSaveMsg" class="save-msg" style="margin-top:8px;"></div>
+  </div>
+</div>
 
 <!-- PRESCRIPTION MODAL -->
 <div id="rxModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center;padding:16px;">

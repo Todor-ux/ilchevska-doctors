@@ -17,6 +17,11 @@ const SHOPIFY_STORE_URL = 'ilchevskapharmacy.bg';
 // EmailJS template за рецепта (създай нов template в EmailJS)
 const EMAILJS_PRESCRIPTION_TEMPLATE = 'template_dp0zlqn';
 
+// EmailJS template за заявка за отзив след консултация (създай ръчно в EmailJS)
+const EMAILJS_REVIEW_REQUEST_TEMPLATE = 'template_review_request';
+
+const COMMISSION_PERCENT = 15;
+
 function initSupabase() {
     return supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 }
