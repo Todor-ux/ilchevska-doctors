@@ -273,6 +273,7 @@
         <div class="consult-date">📅 ${fmtDate(b.time_slots?.date)} в ${(b.time_slots?.time||'').slice(0,5)||'?'}</div>
         <div class="consult-doctor">${escHtml(b.doctors?.name || '—')}</div>
         <div class="consult-spec">${escHtml(b.doctors?.specialty || '')}</div>
+        ${b.consultation_type === 'online' ? `<div class="consult-complaint">🌐 Онлайн консултация</div>` : `<div class="consult-complaint">🏥 Физическа консултация</div>`}
         ${b.complaint ? `<div class="consult-complaint">💬 ${escHtml(b.complaint)}</div>` : ''}
       </div>
       <span class="badge badge-${b.status}">${statusLabel(b.status)}</span>
