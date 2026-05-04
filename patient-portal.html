@@ -233,21 +233,14 @@
   async function loadUpcoming() {
     const el = document.getElementById('upcomingList');
     const todayStr = new Date().toISOString().split('T')[0];
-    const { data, error } = await db.from('bookings')
+    const { data } = await db.from('bookings')
       .select('*, doctors(name, specialty), time_slots(date, time)')
       .eq('patient_email', currentUser.email)
+      .in('status', ['confirmed', 'pending'])
       .order('created_at');
-    if (error) {
-      el.innerHTML = `<div class="empty"><p style="color:red">Грешка: ${error.message}</p><p style="font-size:0.8rem;color:var(--muted)">Email: ${currentUser.email}</p></div>`;
-      return;
-    }
-    if (!data?.length) {
-      el.innerHTML = `<div class="empty"><div class="empty-icon">📅</div><p>Няма резервации за: <strong>${currentUser.email}</strong></p><a href="index.html">Резервирайте час →</a></div>`;
-      return;
-    }
-    const list = data.filter(b => ['confirmed','pending'].includes(b.status) && (!b.time_slots?.date || b.time_slots.date >= todayStr));
+    const list = (data || []).filter(b => !b.time_slots?.date || b.time_slots.date >= todayStr);
     if (!list.length) {
-      el.innerHTML = `<div class="empty"><div class="empty-icon">📅</div><p>Намерени ${data.length} резервации, но нито една е предстояща.<br><small style="color:var(--muted)">${data.map(b=>`${b.status} / ${b.time_slots?.date||'без дата'}`).join(', ')}</small></p><a href="index.html">Резервирайте час →</a></div>`;
+      el.innerHTML = `<div class="empty"><div class="empty-icon">📅</div><p>Нямате предстоящи консултации.</p><a href="index.html">Резервирайте час →</a></div>`;
       return;
     }
     el.innerHTML = list.map(b => consultCard(b, 'upcoming')).join('');
