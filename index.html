@@ -1831,7 +1831,7 @@
       slot_id:           payload.p_slot_id,
       patient_name:      payload.p_patient_name,
       patient_email:     payload.p_patient_email,
-      patient_phone:     payload.p_patient_phone || null,
+      patient_phone:     payload.p_patient_phone || '',
       complaint:         payload.p_complaint     || null,
       status:            'pending',
       consultation_type: selectedConsultType,
