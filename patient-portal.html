@@ -238,7 +238,7 @@
       .eq('patient_email', currentUser.email)
       .in('status', ['confirmed', 'pending'])
       .order('created_at');
-    const list = (data || []).filter(b => (b.time_slots?.date || '') >= todayStr);
+    const list = (data || []).filter(b => !b.time_slots?.date || b.time_slots.date >= todayStr);
     if (!list.length) {
       el.innerHTML = `<div class="empty"><div class="empty-icon">📅</div><p>Нямате предстоящи консултации.</p><a href="index.html">Резервирайте час →</a></div>`;
       return;
