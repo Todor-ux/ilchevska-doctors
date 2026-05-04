@@ -1830,7 +1830,7 @@
       doctor_id:         currentDoctor.id,
       slot_id:           payload.p_slot_id,
       patient_name:      payload.p_patient_name,
-      patient_email:     payload.p_patient_email,
+      patient_email:     payload.p_patient_email.toLowerCase(),
       patient_phone:     payload.p_patient_phone || '',
       complaint:         payload.p_complaint     || null,
       status:            'pending',
