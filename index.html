@@ -992,6 +992,9 @@
     <p style="color:var(--muted)">Зареждане на специалисти...</p>
   </div>
   <div id="doctorsGrid" class="doctors-grid" style="display:none"></div>
+  <div style="text-align:center;padding:24px 0 8px;">
+    <button id="loadMoreBtn" onclick="loadMoreDoctors()" style="display:none;background:var(--primary);color:#fff;border:none;border-radius:10px;padding:12px 32px;font-size:0.95rem;font-weight:700;cursor:pointer;transition:opacity 0.2s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Зареди още</button>
+  </div>
 </div>
 
 <!-- ── DOCTOR MODAL ─────────────────────────────────────────── -->
@@ -1162,9 +1165,14 @@
 <script src="supabase-config.js"></script>
 <script>
   let db;
-  let allDoctors = [];
-  let nextSlots = {};
+  let allDoctors = [];   // само текущата страница
+  let nextSlots = {};    // следващ свободен час за текущата страница
   let currentDoctor = null;
+  const PAGE_SIZE = 24;
+  let currentPage = 0;
+  let totalCount = 0;
+  let isLoading = false;
+  let searchDebounceTimer = null;
   let currentMonthSlots = {};
   let selectedDate = null;
   let selectedSlot = null;
@@ -1186,7 +1194,7 @@
     try {
       db = initSupabase();
       emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
-      await loadDoctors();
+      await Promise.all([searchDoctors(false), populateSpecDatalist()]);
     } catch(err) {
       const grid = document.getElementById('doctorsGrid');
       grid.style.display = 'grid';
@@ -1214,34 +1222,92 @@
       </div>`).join('');
   }
 
-  async function loadDoctors() {
-    showSkeletons();
+  async function searchDoctors(append = false) {
+    if (isLoading) return;
+    isLoading = true;
+    if (!append) { currentPage = 0; showSkeletons(); }
+
+    const q     = document.getElementById('searchInput').value.trim();
+    const spec  = document.getElementById('fSpec').value.trim();
+    const pMin  = parseFloat(document.getElementById('fPriceMin').value) || 0;
+    const pMax  = parseFloat(document.getElementById('fPriceMax').value) || null;
+    const avail = document.getElementById('fAvail').value;
+    const minR  = parseFloat(document.getElementById('fRating').value) || 0;
+    const sort  = document.getElementById('fSort').value;
+
     try {
-      const timeout = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Supabase не отговаря (timeout 10s). Проверете интернет връзката или опитайте по-късно.')), 10000)
-      );
-      const [{ data: doctors, error }, { data: slots }] = await Promise.race([
-        Promise.all([
-          db.from('doctors').select('*').eq('is_available', true).order('rating', { ascending: false }),
-          db.from('time_slots')
-            .select('doctor_id, date, time')
-            .eq('is_booked', false)
-            .eq('is_pending', false)
-            .gte('date', today())
-            .order('date').order('time')
-        ]),
-        timeout
-      ]);
+      let query = db.from('doctors').select('*', { count: 'exact' }).eq('is_available', true);
+      if (q)    query = query.or(`name.ilike.%${q}%,specialty.ilike.%${q}%,description.ilike.%${q}%`);
+      if (spec) query = query.ilike('specialty', `%${spec}%`);
+      if (pMin > 0) query = query.gte('price', pMin);
+      if (pMax)     query = query.lte('price', pMax);
+      if (minR > 0) query = query.gte('rating', minR);
+
+      if (sort === 'price_asc')  query = query.order('price', { ascending: true });
+      else if (sort === 'price_desc') query = query.order('price', { ascending: false });
+      else query = query.order('rating', { ascending: false, nullsFirst: false });
+
+      const from = currentPage * PAGE_SIZE;
+      query = query.range(from, from + PAGE_SIZE - 1);
+
+      const { data: doctors, count, error } = await query;
       if (error) throw error;
-      allDoctors = doctors || [];
-      nextSlots = {};
-      (slots || []).forEach(s => { if (!nextSlots[s.doctor_id]) nextSlots[s.doctor_id] = s; });
-      populateSpecDatalist();
-      applyFilters();
+      totalCount = count || 0;
+
+      // Зареди следващ свободен час само за специалистите на тази страница
+      const ids = (doctors || []).map(d => d.id);
+      const pageSlots = {};
+      if (ids.length) {
+        const { data: slots } = await db.from('time_slots')
+          .select('doctor_id, date, time')
+          .in('doctor_id', ids)
+          .eq('is_booked', false).eq('is_pending', false)
+          .gte('date', today())
+          .order('date').order('time');
+        (slots || []).forEach(s => { if (!pageSlots[s.doctor_id]) pageSlots[s.doctor_id] = s; });
+      }
+
+      // Наличност — client-side след server query
+      let list = doctors || [];
+      if (avail === 'today') list = list.filter(d => pageSlots[d.id]?.date === today());
+      else if (avail === 'week') list = list.filter(d => {
+        const ns = pageSlots[d.id]; if (!ns) return false;
+        return (new Date(ns.date) - new Date(today())) / 86400000 <= 7;
+      });
+      if (showFavsOnly) list = list.filter(d => favorites.includes(d.id));
+
+      if (append) {
+        allDoctors = [...allDoctors, ...list];
+        Object.assign(nextSlots, pageSlots);
+        appendToGrid(list, pageSlots);
+      } else {
+        allDoctors = list;
+        nextSlots = pageSlots;
+        renderGrid(list);
+      }
+
+      document.getElementById('resultsCount').textContent = totalCount + ' специалисти';
+      updateLoadMoreBtn();
     } catch(e) {
       const grid = document.getElementById('doctorsGrid');
       grid.style.display = 'grid';
-      grid.innerHTML = `<div class="no-results"><h3>Грешка при зареждане</h3><p>${e.message}</p><button onclick="loadDoctors()">Опитай пак</button></div>`;
+      grid.innerHTML = `<div class="no-results"><h3>Грешка при зареждане</h3><p>${e.message}</p><button onclick="searchDoctors()">Опитай пак</button></div>`;
+    } finally {
+      isLoading = false;
+    }
+  }
+
+  function loadMoreDoctors() { currentPage++; searchDoctors(true); }
+
+  function updateLoadMoreBtn() {
+    const btn = document.getElementById('loadMoreBtn');
+    if (!btn) return;
+    const loaded = allDoctors.length;
+    if (loaded < totalCount) {
+      btn.style.display = 'inline-block';
+      btn.textContent = `Зареди още (${totalCount - loaded} останали)`;
+    } else {
+      btn.style.display = 'none';
     }
   }
 
@@ -1323,84 +1389,43 @@
 
   // ── FILTER + SORT ─────────────────────────────────────
   function applyFilters() {
-    const q      = (document.getElementById('searchInput').value || '').toLowerCase();
+    const q = document.getElementById('searchInput').value || '';
     runSymptomSearch(q);
-    const spec   = (document.getElementById('fSpec').value || '').toLowerCase().trim();
-    const pMin   = parseFloat(document.getElementById('fPriceMin').value) || 0;
-    const pMax   = parseFloat(document.getElementById('fPriceMax').value) || Infinity;
-    const avail  = document.getElementById('fAvail').value;
-    const minR   = parseFloat(document.getElementById('fRating').value) || 0;
-    const sort   = document.getElementById('fSort').value;
-
-    // Show/hide clear button
     const clearBtn = document.getElementById('fSpecClear');
-    if (clearBtn) clearBtn.classList.toggle('visible', spec.length > 0);
-
-    let list = allDoctors.filter(d => {
-      if (showFavsOnly && !favorites.includes(d.id)) return false;
-      if (q && !d.name.toLowerCase().includes(q) && !d.specialty.toLowerCase().includes(q) &&
-          !(Array.isArray(d.tags) ? d.tags : []).some(t => t.toLowerCase().includes(q)) &&
-          !(d.description||'').toLowerCase().includes(q)) return false;
-      if (spec && !d.specialty.toLowerCase().includes(spec)) return false;
-      if (d.price < pMin || d.price > pMax) return false;
-      if (avail === 'today' && nextSlots[d.id]?.date !== today()) return false;
-      if (avail === 'week') {
-        const ns = nextSlots[d.id];
-        if (!ns) return false;
-        const diff = (new Date(ns.date) - new Date(today())) / 86400000;
-        if (diff > 7) return false;
-      }
-      if ((d.rating||0) < minR) return false;
-      return true;
-    });
-
-    if (sort === 'rating')       list.sort((a,b) => (b.rating||0) - (a.rating||0));
-    else if (sort === 'price_asc')  list.sort((a,b) => a.price - b.price);
-    else if (sort === 'price_desc') list.sort((a,b) => b.price - a.price);
-    else if (sort === 'avail') {
-      list.sort((a,b) => {
-        const da  = nextSlots[a.id]?.date || '9999';
-        const db2 = nextSlots[b.id]?.date || '9999';
-        return da.localeCompare(db2);
-      });
-    }
-    renderGrid(list);
+    if (clearBtn) clearBtn.classList.toggle('visible', document.getElementById('fSpec').value.length > 0);
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => searchDoctors(false), 350);
   }
 
   function clearSpec() {
     document.getElementById('fSpec').value = '';
     document.getElementById('fSpecClear').classList.remove('visible');
-    applyFilters();
+    searchDoctors(false);
   }
 
   function resetFilters() {
     ['searchInput','fPriceMin','fPriceMax','fSpec'].forEach(id => document.getElementById(id).value = '');
-    ['fAvail'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('fAvail').value = '';
     document.getElementById('fRating').value = '0';
     document.getElementById('fSort').value = 'rating';
     document.getElementById('fSpecClear').classList.remove('visible');
     showFavsOnly = false;
     document.getElementById('btnFavs').classList.remove('active');
-    applyFilters();
+    symptomSpecFilter = null; hideSymptomBanner();
+    searchDoctors(false);
   }
 
-  function populateSpecDatalist() {
-    const specs = [...new Set(allDoctors.map(d => d.specialty).filter(Boolean))].sort();
+  async function populateSpecDatalist() {
+    const { data } = await db.from('doctors').select('specialty').eq('is_available', true);
+    const specs = [...new Set((data || []).map(d => d.specialty).filter(Boolean))].sort();
     const dl = document.getElementById('specDatalist');
-    dl.innerHTML = specs.map(s => `<option value="${escHtml(s)}">`).join('');
+    if (dl) dl.innerHTML = specs.map(s => `<option value="${escHtml(s)}">`).join('');
   }
 
   // ── RENDER GRID ───────────────────────────────────────
-  function renderGrid(list) {
-    const grid = document.getElementById('doctorsGrid');
-    grid.style.display = 'grid';
-    document.getElementById('resultsCount').textContent = list.length + ' специалисти';
-    if (!list.length) {
-      grid.innerHTML = '<div class="no-results"><h3>Няма намерени специалисти</h3><p>Опитайте с по-широки критерии.</p></div>';
-      return;
-    }
-    grid.innerHTML = list.map(d => {
-      const slot = nextSlots[d.id];
+  function doctorsToHtml(list, slots) {
+    return list.map(d => {
+      const slot = slots[d.id];
       const isToday = slot?.date === today();
       const nextText = slot
         ? (isToday ? 'Днес, ' + slot.time.slice(0,5) : fmtDate(slot.date) + ' ' + slot.time.slice(0,5))
@@ -1417,17 +1442,36 @@
         </div>
         <div class="card-body">
           <div class="stars">${starsHTML(d.rating)}<span>${(d.rating||0).toFixed(1)} (${d.reviews_count||0} отзива)</span></div>
-          <div class="card-price">${d.price} евро <small>/ консултация</small></div>
+          <div class="card-price">${d.price} лв. <small>/ консултация</small></div>
           ${d.daily_tip ? `<div class="next-slot">💡 <span>Съвет:</span> ${escHtml(d.daily_tip.slice(0,55))}${d.daily_tip.length>55?'...':''}</div>` : ''}
           <div class="next-slot">🕐 <span>Следващ час:</span> ${nextText}</div>
         </div>
         <div class="card-footer"><button class="btn-book" onclick="event.stopPropagation(); openModal('${d.id}')">Резервирай час</button></div>
       </div>`;
     }).join('');
+  }
 
-    // Staggered entrance animation
+  function renderGrid(list) {
+    const grid = document.getElementById('doctorsGrid');
+    grid.style.display = 'grid';
+    if (!list.length) {
+      grid.innerHTML = '<div class="no-results"><h3>Няма намерени специалисти</h3><p>Опитайте с по-широки критерии.</p></div>';
+      return;
+    }
+    grid.innerHTML = doctorsToHtml(list, nextSlots);
     requestAnimationFrame(() => {
       grid.querySelectorAll('.doc-card').forEach((card, i) => {
+        card.style.animationDelay = `${i * 55}ms`;
+        card.classList.add('visible');
+      });
+    });
+  }
+
+  function appendToGrid(list, slots) {
+    const grid = document.getElementById('doctorsGrid');
+    grid.insertAdjacentHTML('beforeend', doctorsToHtml(list, slots));
+    requestAnimationFrame(() => {
+      grid.querySelectorAll('.doc-card:not(.visible)').forEach((card, i) => {
         card.style.animationDelay = `${i * 55}ms`;
         card.classList.add('visible');
       });
@@ -1438,7 +1482,11 @@
   async function openModal(doctorId) {
     try {
       currentDoctor = allDoctors.find(d => d.id === doctorId);
-      if (!currentDoctor) { alert('Лекарят не е намерен: ' + doctorId); return; }
+      if (!currentDoctor) {
+        const { data } = await db.from('doctors').select('*').eq('id', doctorId).single();
+        if (!data) { alert('Лекарят не е намерен'); return; }
+        currentDoctor = data;
+      }
       selectedDate = null; selectedSlot = null; currentMonthSlots = {};
       clearPending();
       populateModalInfo();
