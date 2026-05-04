@@ -698,7 +698,7 @@ function confirmModalBooking() {
 
 async function submitModalBooking() {
   const name      = document.getElementById('bkName')?.value.trim();
-  const email     = document.getElementById('bkEmail')?.value.trim();
+  const email     = document.getElementById('bkEmail')?.value.trim().toLowerCase();
   const phone     = document.getElementById('bkPhone')?.value.trim();
   const complaint = document.getElementById('bkComplaint')?.value.trim();
 
@@ -851,7 +851,7 @@ function cancelBookingForm() {
 
 async function submitBooking() {
   const name      = document.getElementById('bkName')?.value.trim();
-  const email     = document.getElementById('bkEmail')?.value.trim();
+  const email     = document.getElementById('bkEmail')?.value.trim().toLowerCase();
   const phone     = document.getElementById('bkPhone')?.value.trim();
   const complaint = document.getElementById('bkComplaint')?.value.trim();
 
