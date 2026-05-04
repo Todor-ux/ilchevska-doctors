@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Моят Акаунт – Ilchevska Pharmacy</title>
+  <style>
+    :root {
+      --primary: #0d2d4e;
+      --primary-light: #1a4570;
+      --accent: #2a9d5c;
+      --accent-dark: #1b5e20;
+      --bg: #f0f4f8;
+      --card-bg: #ffffff;
+      --text: #1a2636;
+      --text-light: #4a5568;
+      --muted: #8a9ab0;
+      --border: #dde4ec;
+      --shadow: 0 2px 12px rgba(13,45,78,0.10);
+      --radius: 14px;
+      --radius-sm: 8px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+    /* Header */
+    header { background: var(--primary); color: #fff; padding: 0 24px; height: 64px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 2px 12px rgba(0,0,0,0.18); }
+    .logo { font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px; text-decoration: none; color: #fff; }
+    .back-link { color: rgba(255,255,255,0.75); font-size: 0.88rem; text-decoration: none; }
+    .back-link:hover { color: #fff; }
+
+    /* Login */
+    #loginPage { min-height: calc(100vh - 64px); display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .login-card { background: #fff; border-radius: var(--radius); padding: 44px 40px; width: 100%; max-width: 420px; box-shadow: 0 20px 60px rgba(0,0,0,0.12); }
+    .login-icon { font-size: 2.8rem; text-align: center; margin-bottom: 20px; }
+    .login-card h2 { font-size: 1.3rem; color: var(--primary); font-weight: 800; margin-bottom: 6px; }
+    .login-card .subtitle { color: var(--muted); font-size: 0.88rem; margin-bottom: 28px; line-height: 1.5; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-light); margin-bottom: 5px; }
+    .form-group input { width: 100%; border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px; font-size: 0.95rem; outline: none; font-family: inherit; transition: border-color 0.2s; }
+    .form-group input:focus { border-color: var(--accent); }
+    .btn-primary { width: 100%; background: var(--accent); color: #fff; border: none; border-radius: var(--radius-sm); padding: 13px; font-size: 0.95rem; font-weight: 700; cursor: pointer; transition: background 0.2s; margin-top: 4px; }
+    .btn-primary:hover { background: var(--accent-dark); }
+    .btn-primary:disabled { opacity: 0.65; cursor: not-allowed; }
+    .success-box { background: #d1fae5; border: 1px solid #6ee7b7; border-radius: var(--radius-sm); padding: 14px 16px; font-size: 0.88rem; color: #065f46; margin-top: 16px; display: none; line-height: 1.5; }
+    .error-msg { color: #e53e3e; font-size: 0.82rem; margin-top: 10px; min-height: 20px; }
+
+    /* Dashboard */
+    #dashPage { display: none; }
+    .dash-hero { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 60%, var(--accent) 100%); color: #fff; padding: 36px 24px; }
+    .dash-hero-inner { max-width: 860px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; }
+    .dash-greeting h1 { font-size: 1.4rem; font-weight: 800; }
+    .dash-greeting p { font-size: 0.88rem; opacity: 0.78; margin-top: 4px; }
+    .btn-logout { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: #fff; border-radius: 8px; padding: 9px 20px; font-size: 0.85rem; cursor: pointer; font-weight: 600; transition: background 0.2s; }
+    .btn-logout:hover { background: rgba(220,50,50,0.35); }
+
+    /* Tabs */
+    .dash-tabs { background: #fff; border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }
+    .dash-tabs-inner { max-width: 860px; margin: 0 auto; display: flex; overflow-x: auto; }
+    .dash-tab { padding: 15px 26px; font-size: 0.9rem; font-weight: 600; color: var(--muted); cursor: pointer; border: none; border-bottom: 2px solid transparent; background: none; white-space: nowrap; transition: color 0.15s, border-color 0.15s; }
+    .dash-tab:hover { color: var(--primary); }
+    .dash-tab.active { color: var(--primary); border-bottom-color: var(--accent); }
+
+    /* Main content */
+    .dash-body { max-width: 860px; margin: 0 auto; padding: 28px 20px 48px; }
+    .dash-section { display: none; }
+    .dash-section.active { display: block; }
+    .section-title { font-size: 1rem; font-weight: 700; color: var(--primary); margin-bottom: 16px; }
+
+    /* Consultation cards */
+    .consult-card { background: #fff; border-radius: var(--radius); padding: 18px 20px; margin-bottom: 12px; box-shadow: var(--shadow); border-left: 4px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+    .consult-card.upcoming { border-left-color: var(--accent); }
+    .consult-card.past { border-left-color: #94a3b8; }
+    .consult-info { flex: 1; min-width: 0; }
+    .consult-date { font-size: 0.78rem; color: var(--muted); font-weight: 600; margin-bottom: 5px; }
+    .consult-doctor { font-size: 1rem; font-weight: 700; color: var(--primary); }
+    .consult-spec { font-size: 0.82rem; color: var(--muted); margin-top: 2px; }
+    .consult-complaint { font-size: 0.82rem; color: var(--text-light); font-style: italic; margin-top: 5px; }
+    .badge { display: inline-block; border-radius: 20px; padding: 3px 11px; font-size: 0.75rem; font-weight: 700; }
+    .badge-confirmed  { background: #dbeafe; color: #1d4ed8; }
+    .badge-completed  { background: #dcfce7; color: #166534; }
+    .badge-cancelled  { background: #fee2e2; color: #991b1b; }
+    .badge-pending    { background: #fef9c3; color: #854d0e; }
+
+    /* Prescription cards */
+    .rx-card { background: #fff; border-radius: var(--radius); padding: 20px; margin-bottom: 14px; box-shadow: var(--shadow); }
+    .rx-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; flex-wrap: wrap; gap: 8px; }
+    .rx-doctor-name { font-size: 0.95rem; font-weight: 700; color: var(--primary); }
+    .rx-date-lbl { font-size: 0.78rem; color: var(--muted); }
+    .rx-item-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid #f0f4f8; font-size: 0.85rem; gap: 8px; }
+    .rx-item-row:last-of-type { border-bottom: none; }
+    .rx-item-name { font-weight: 600; }
+    .rx-item-meta { color: var(--muted); font-size: 0.78rem; text-align: right; }
+    .rx-notes { font-size: 0.82rem; color: var(--text-light); margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+    .btn-order { display: inline-flex; align-items: center; gap: 6px; background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 0.88rem; font-weight: 700; cursor: pointer; margin-top: 14px; text-decoration: none; transition: background 0.2s; }
+    .btn-order:hover { background: var(--accent-dark); }
+
+    /* Empty state */
+    .empty { text-align: center; padding: 48px 20px; color: var(--muted); }
+    .empty-icon { font-size: 2.8rem; margin-bottom: 14px; }
+    .empty p { margin-bottom: 16px; font-size: 0.92rem; }
+    .empty a { color: var(--accent); font-weight: 700; text-decoration: none; }
+
+    @media (max-width: 600px) {
+      .login-card { padding: 32px 20px; }
+      .dash-hero { padding: 24px 16px; }
+      .dash-body { padding: 20px 14px 60px; }
+      .dash-tab { padding: 12px 16px; font-size: 0.82rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="index.html" class="logo">💊 Ilchevska Pharmacy</a>
+  <a href="index.html" class="back-link">← Към специалистите</a>
+</header>
+
+<!-- ── LOGIN ──────────────────────────────────── -->
+<div id="loginPage">
+  <div class="login-card">
+    <div class="login-icon">👤</div>
+    <h2>Моят акаунт</h2>
+    <p class="subtitle">Въведете имейла, с който сте направили резервация. Ще получите линк за вход — без парола.</p>
+    <div class="form-group">
+      <label>Имейл адрес</label>
+      <input id="loginEmail" type="email" placeholder="vashiat@email.com"
+        onkeydown="if(event.key==='Enter')sendMagicLink()">
+    </div>
+    <button class="btn-primary" onclick="sendMagicLink()" id="loginBtn">✉ Изпрати линк за вход</button>
+    <div class="success-box" id="successBox">
+      ✅ Изпратихме линк на <strong id="sentEmail"></strong>.<br>
+      Проверете имейла си и натиснете линка — ще влезете автоматично.
+    </div>
+    <p class="error-msg" id="loginError"></p>
+  </div>
+</div>
+
+<!-- ── DASHBOARD ──────────────────────────────── -->
+<div id="dashPage">
+  <div class="dash-hero">
+    <div class="dash-hero-inner">
+      <div class="dash-greeting">
+        <h1>👋 Добре дошли!</h1>
+        <p id="userEmailLabel"></p>
+      </div>
+      <button class="btn-logout" onclick="logout()">🚪 Изход</button>
+    </div>
+  </div>
+
+  <div class="dash-tabs">
+    <div class="dash-tabs-inner">
+      <button class="dash-tab active" data-sec="upcoming" onclick="showSection(this,'upcoming')">📅 Предстоящи</button>
+      <button class="dash-tab" data-sec="past"     onclick="showSection(this,'past')">🕐 Минали</button>
+      <button class="dash-tab" data-sec="rxlist"   onclick="showSection(this,'rxlist')">💊 Рецепти</button>
+    </div>
+  </div>
+
+  <div class="dash-body">
+    <div id="sec-upcoming" class="dash-section active">
+      <p class="section-title">Предстоящи консултации</p>
+      <div id="upcomingList"></div>
+    </div>
+    <div id="sec-past" class="dash-section">
+      <p class="section-title">Минали консултации</p>
+      <div id="pastList"></div>
+    </div>
+    <div id="sec-rxlist" class="dash-section">
+      <p class="section-title">Изписани рецепти</p>
+      <div id="prescriptionsList"></div>
+    </div>
+  </div>
+</div>
+
+<script src="supabase.min.js"></script>
+<script src="supabase-config.js"></script>
+<script>
+  let db, currentUser;
+
+  document.addEventListener('DOMContentLoaded', async () => {
+    db = initSupabase();
+    const { data: { session } } = await db.auth.getSession();
+    if (session) { currentUser = session.user; showDashboard(); }
+    db.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session && !currentUser) {
+        currentUser = session.user;
+        showDashboard();
+      }
+    });
+  });
+
+  async function sendMagicLink() {
+    const email   = document.getElementById('loginEmail').value.trim();
+    const errEl   = document.getElementById('loginError');
+    const succBox = document.getElementById('successBox');
+    const btn     = document.getElementById('loginBtn');
+    errEl.textContent = ''; succBox.style.display = 'none';
+    if (!email || !email.includes('@')) { errEl.textContent = 'Въведете валиден имейл.'; return; }
+    btn.disabled = true; btn.textContent = 'Изпраща...';
+    const { error } = await db.auth.signInWithOtp({
+      email,
+      options: { emailRedirectTo: window.location.href }
+    });
+    btn.disabled = false; btn.textContent = '✉ Изпрати линк за вход';
+    if (error) { errEl.textContent = 'Грешка: ' + error.message; return; }
+    document.getElementById('sentEmail').textContent = email;
+    succBox.style.display = 'block';
+  }
+
+  function showDashboard() {
+    document.getElementById('loginPage').style.display = 'none';
+    document.getElementById('dashPage').style.display  = 'block';
+    document.getElementById('userEmailLabel').textContent = currentUser.email;
+    loadUpcoming();
+    loadPast();
+    loadPrescriptions();
+  }
+
+  function showSection(btn, name) {
+    document.querySelectorAll('.dash-section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.dash-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('sec-' + name).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  async function logout() {
+    await db.auth.signOut();
+    location.reload();
+  }
+
+  // ── ПРЕДСТОЯЩИ ──────────────────────────────────────────
+  async function loadUpcoming() {
+    const el = document.getElementById('upcomingList');
+    const todayStr = new Date().toISOString().split('T')[0];
+    const { data } = await db.from('bookings')
+      .select('*, doctors(name, specialty), time_slots(date, time)')
+      .eq('patient_email', currentUser.email)
+      .in('status', ['confirmed', 'pending'])
+      .order('created_at');
+    const list = (data || []).filter(b => (b.time_slots?.date || '') >= todayStr);
+    if (!list.length) {
+      el.innerHTML = `<div class="empty"><div class="empty-icon">📅</div><p>Нямате предстоящи консултации.</p><a href="index.html">Резервирайте час →</a></div>`;
+      return;
+    }
+    el.innerHTML = list.map(b => consultCard(b, 'upcoming')).join('');
+  }
+
+  // ── МИНАЛИ ──────────────────────────────────────────────
+  async function loadPast() {
+    const el = document.getElementById('pastList');
+    const todayStr = new Date().toISOString().split('T')[0];
+    const { data } = await db.from('bookings')
+      .select('*, doctors(name, specialty), time_slots(date, time)')
+      .eq('patient_email', currentUser.email)
+      .order('created_at', { ascending: false })
+      .limit(40);
+    const list = (data || []).filter(b =>
+      b.status === 'completed' || b.status === 'cancelled' || (b.time_slots?.date || '') < todayStr
+    );
+    if (!list.length) {
+      el.innerHTML = `<div class="empty"><div class="empty-icon">🕐</div><p>Нямате минали консултации.</p></div>`;
+      return;
+    }
+    el.innerHTML = list.map(b => consultCard(b, 'past')).join('');
+  }
+
+  function consultCard(b, type) {
+    return `<div class="consult-card ${type}">
+      <div class="consult-info">
+        <div class="consult-date">📅 ${fmtDate(b.time_slots?.date)} в ${(b.time_slots?.time||'').slice(0,5)||'?'}</div>
+        <div class="consult-doctor">${escHtml(b.doctors?.name || '—')}</div>
+        <div class="consult-spec">${escHtml(b.doctors?.specialty || '')}</div>
+        ${b.complaint ? `<div class="consult-complaint">💬 ${escHtml(b.complaint)}</div>` : ''}
+      </div>
+      <span class="badge badge-${b.status}">${statusLabel(b.status)}</span>
+    </div>`;
+  }
+
+  // ── РЕЦЕПТИ ─────────────────────────────────────────────
+  async function loadPrescriptions() {
+    const el = document.getElementById('prescriptionsList');
+    const { data } = await db.from('prescriptions')
+      .select('*, doctors(name), prescription_items(*)')
+      .eq('patient_email', currentUser.email)
+      .order('created_at', { ascending: false });
+    if (!data?.length) {
+      el.innerHTML = `<div class="empty"><div class="empty-icon">💊</div><p>Нямате изписани рецепти.</p></div>`;
+      return;
+    }
+    el.innerHTML = data.map(rx => {
+      const cartItems = (rx.prescription_items || []).filter(i => i.shopify_variant_id);
+      const cartUrl = cartItems.length
+        ? `https://${SHOPIFY_STORE_URL}/cart/${cartItems.map(i => `${i.shopify_variant_id}:${i.quantity}`).join(',')}`
+        : null;
+      return `<div class="rx-card">
+        <div class="rx-header">
+          <div>
+            <div class="rx-doctor-name">💊 Д-р ${escHtml(rx.doctors?.name || '—')}</div>
+            <div class="rx-date-lbl">${new Date(rx.created_at).toLocaleDateString('bg-BG')}</div>
+          </div>
+        </div>
+        ${(rx.prescription_items || []).map(item => `
+          <div class="rx-item-row">
+            <span class="rx-item-name">${escHtml(item.product_name)}</span>
+            <span class="rx-item-meta">${escHtml(item.dosage||'')}${item.duration?' · '+escHtml(item.duration):''} · ${item.quantity} бр.</span>
+          </div>`).join('')}
+        ${rx.notes ? `<div class="rx-notes">📝 ${escHtml(rx.notes)}</div>` : ''}
+        ${cartUrl ? `<a href="${cartUrl}" target="_blank" class="btn-order">🛒 Поръчай от аптеката</a>` : ''}
+      </div>`;
+    }).join('');
+  }
+
+  // ── HELPERS ──────────────────────────────────────────────
+  function escHtml(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function fmtDate(d) {
+    if (!d) return '—';
+    return new Date(d + 'T00:00:00').toLocaleDateString('bg-BG', { day:'numeric', month:'long', year:'numeric' });
+  }
+  function statusLabel(s) {
+    return { confirmed:'Потвърдена', pending:'Изчаква', completed:'Завършена', cancelled:'Отказана' }[s] || s;
+  }
+</script>
+</body>
+</html>
