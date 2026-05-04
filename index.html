@@ -1826,15 +1826,25 @@
       p_complaint:     document.getElementById('bComplaint').value.trim()
     };
 
-    const { data: bookingId, error } = await db.rpc('confirm_booking', payload);
+    const { data: newBooking, error } = await db.from('bookings').insert({
+      doctor_id:         currentDoctor.id,
+      slot_id:           payload.p_slot_id,
+      patient_name:      payload.p_patient_name,
+      patient_email:     payload.p_patient_email,
+      patient_phone:     payload.p_patient_phone || null,
+      complaint:         payload.p_complaint     || null,
+      status:            'pending',
+      consultation_type: selectedConsultType,
+    }).select('id').single();
+
     if (error) {
       alert('Грешка при резервация: ' + error.message);
       btn.disabled = false; btn.textContent = 'Потвърди резервацията';
       return;
     }
 
-    // Записваме вида на консултацията
-    await db.from('bookings').update({ consultation_type: selectedConsultType }).eq('id', bookingId);
+    await db.from('time_slots').update({ is_booked: true }).eq('id', payload.p_slot_id);
+    const bookingId = newBooking?.id;
 
     const slotDate    = selectedDate;
     const slotTime    = selectedSlot.time;
