@@ -824,6 +824,7 @@
     const { data } = await db.from('bookings')
       .select('*, time_slots(date, time)')
       .eq('doctor_id', currentDoctor.id)
+      .not('status', 'in', '("completed","cancelled")')
       .order('created_at');
     const filtered = (data || []).filter(b => b.time_slots?.date === todayStr);
     renderBookingsList('todayList', filtered);
@@ -836,6 +837,7 @@
     const { data } = await db.from('bookings')
       .select('*, time_slots(date, time)')
       .eq('doctor_id', currentDoctor.id)
+      .not('status', 'in', '("completed","cancelled")')
       .order('created_at');
     const filtered = (data || []).filter(b => {
       const d = b.time_slots?.date;
