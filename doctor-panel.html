@@ -1576,6 +1576,7 @@
   // ══════════════════════════════════════════════════════
   async function completeConsultation(bookingId, patientEmail, patientName) {
     if (!confirm(`Завърши консултацията с ${patientName}?`)) return;
+
     const { error } = await db.from('bookings').update({
       status: 'completed',
       completed_at: new Date().toISOString(),
@@ -1583,25 +1584,27 @@
     }).eq('id', bookingId);
     if (error) { alert('Грешка: ' + error.message); return; }
 
-    const price      = parseFloat(currentDoctor.price) || 0;
-    const commission = Math.round(price * COMMISSION_PERCENT) / 100;
-    await db.from('payments').insert({
-      doctor_id:         currentDoctor.id,
-      booking_id:        bookingId,
-      patient_email:     patientEmail,
-      patient_name:      patientName,
-      amount_total:      price,
-      commission_amount: commission,
-      doctor_net:        price - commission,
-    });
+    try {
+      const price      = parseFloat(currentDoctor.price) || 0;
+      const commission = Math.round(price * COMMISSION_PERCENT) / 100;
+      const { error: payErr } = await db.from('payments').insert({
+        doctor_id:         currentDoctor.id,
+        booking_id:        bookingId,
+        patient_email:     patientEmail.toLowerCase(),
+        patient_name:      patientName,
+        amount_total:      price,
+        commission_amount: commission,
+        doctor_net:        price - commission,
+      });
+      if (payErr) console.error('Payment insert error:', payErr.message);
+    } catch(e) { console.error('Payment error:', e); }
 
-    const reviewLink = `${window.location.origin}/index.html?review=${currentDoctor.id}`;
     emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_REVIEW_REQUEST_TEMPLATE, {
       to_email:     patientEmail,
       patient_name: patientName,
       doctor_name:  currentDoctor.name,
       specialty:    currentDoctor.specialty,
-      review_link:  reviewLink,
+      review_link:  `${window.location.origin}/index.html?review=${currentDoctor.id}`,
       pharmacy_name:  PHARMACY_NAME,
       pharmacy_phone: PHARMACY_PHONE,
     }).catch(() => {});
