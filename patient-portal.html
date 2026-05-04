@@ -236,14 +236,16 @@
     const { data } = await db.from('bookings')
       .select('*, doctors(name, specialty), time_slots(date, time)')
       .eq('patient_email', currentUser.email)
-      .not('status', 'eq', 'cancelled')
-      .order('created_at');
-    const list = (data || []).filter(b => !b.time_slots?.date || b.time_slots.date >= todayStr);
-    if (!list.length) {
+      .order('created_at', { ascending: false });
+    const upcoming = (data || []).filter(b =>
+      !['cancelled','completed'].includes(b.status) &&
+      (!b.time_slots?.date || b.time_slots.date >= todayStr)
+    );
+    if (!upcoming.length) {
       el.innerHTML = `<div class="empty"><div class="empty-icon">📅</div><p>Нямате предстоящи консултации.</p><a href="index.html">Резервирайте час →</a></div>`;
       return;
     }
-    el.innerHTML = list.map(b => consultCard(b, 'upcoming')).join('');
+    el.innerHTML = upcoming.map(b => consultCard(b, 'upcoming')).join('');
   }
 
   // ── МИНАЛИ ──────────────────────────────────────────────
