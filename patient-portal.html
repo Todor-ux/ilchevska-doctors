@@ -236,7 +236,7 @@
     const { data } = await db.from('bookings')
       .select('*, doctors(name, specialty), time_slots(date, time)')
       .eq('patient_email', currentUser.email)
-      .in('status', ['confirmed', 'pending'])
+      .not('status', 'eq', 'cancelled')
       .order('created_at');
     const list = (data || []).filter(b => !b.time_slots?.date || b.time_slots.date >= todayStr);
     if (!list.length) {
