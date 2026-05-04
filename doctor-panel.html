@@ -471,6 +471,9 @@
       <button class="sidebar-link" data-tab="profile" onclick="showTab('profile')">
         <span class="nav-icon">👤</span> Профил
       </button>
+      <button class="sidebar-link" data-tab="patients" onclick="showTab('patients')">
+        <span class="nav-icon">👥</span> Пациенти
+      </button>
       <button class="sidebar-link" data-tab="stats" onclick="showTab('stats')">
         <span class="nav-icon">📊</span> Статистики
       </button>
@@ -494,6 +497,9 @@
       </button>
       <button class="bottom-nav-btn" data-tab="profile" onclick="showTab('profile')">
         <span class="bn-icon">👤</span>Профил
+      </button>
+      <button class="bottom-nav-btn" data-tab="patients" onclick="showTab('patients')">
+        <span class="bn-icon">👥</span>Пациенти
       </button>
       <button class="bottom-nav-btn" data-tab="stats" onclick="showTab('stats')">
         <span class="bn-icon">📊</span>Статистики
@@ -634,6 +640,19 @@
       </div>
     </div>
 
+    <!-- TAB: ПАЦИЕНТИ -->
+    <div id="tab-patients" class="tab-content">
+      <div class="tab-header">
+        <h2>Моите пациенти</h2>
+        <p>Всички пациенти, записали се при вас</p>
+      </div>
+      <div class="panel-card" style="margin-bottom:16px;">
+        <input id="patientSearch" type="text" placeholder="🔍 Търси по име или имейл..." oninput="filterPatients()"
+          style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:10px 14px;font-size:0.92rem;outline:none;font-family:inherit;">
+      </div>
+      <div id="patientsList"></div>
+    </div>
+
     <!-- TAB: СТАТИСТИКИ -->
     <div id="tab-stats" class="tab-content">
       <div class="tab-header">
@@ -729,9 +748,10 @@
     document.querySelectorAll(`[data-tab="${tab}"]`).forEach(el => el.classList.add('active'));
     if      (tab === 'today')   loadTodayBookings();
     else if (tab === 'week')    loadWeekBookings();
-    else if (tab === 'slots')   loadWeekCalendar();
-    else if (tab === 'profile') loadProfileForm();
-    else if (tab === 'stats')   loadStats();
+    else if (tab === 'slots')    loadWeekCalendar();
+    else if (tab === 'profile')  loadProfileForm();
+    else if (tab === 'stats')    loadStats();
+    else if (tab === 'patients') loadPatients();
   }
 
   // ── TODAY BOOKINGS ────────────────────────────────────
@@ -1269,6 +1289,86 @@
   });
 
   // ══════════════════════════════════════════════════════
+  // ТАБ ПАЦИЕНТИ
+  // ══════════════════════════════════════════════════════
+  let allPatients = [];
+
+  async function loadPatients() {
+    const el = document.getElementById('patientsList');
+    el.innerHTML = '<div class="empty-state">Зарежда...</div>';
+
+    const { data } = await db.from('bookings')
+      .select('patient_name, patient_email, patient_phone, created_at')
+      .eq('doctor_id', currentDoctor.id)
+      .order('created_at', { ascending: false });
+
+    // Deduplicate by email
+    const seen = new Set();
+    allPatients = (data || []).filter(b => {
+      if (seen.has(b.patient_email)) return false;
+      seen.add(b.patient_email);
+      return true;
+    });
+
+    renderPatients(allPatients);
+  }
+
+  function filterPatients() {
+    const q = document.getElementById('patientSearch').value.toLowerCase();
+    const filtered = q
+      ? allPatients.filter(p =>
+          p.patient_name.toLowerCase().includes(q) ||
+          p.patient_email.toLowerCase().includes(q))
+      : allPatients;
+    renderPatients(filtered);
+  }
+
+  function renderPatients(list) {
+    const el = document.getElementById('patientsList');
+    if (!list.length) {
+      el.innerHTML = '<div class="empty-state">Няма намерени пациенти</div>';
+      return;
+    }
+    el.innerHTML = list.map(p => `
+      <div class="booking-item">
+        <div class="booking-patient"><strong>${escHtml(p.patient_name)}</strong></div>
+        <div class="booking-detail">✉ ${escHtml(p.patient_email)} &nbsp; 📞 ${escHtml(p.patient_phone || '–')}</div>
+        <div class="booking-actions" style="margin-top:10px;">
+          <button onclick="openNotesModal('direct-${escHtml(p.patient_email)}','${escHtml(p.patient_email)}','${escHtml(p.patient_name)}')" class="btn-small btn-purple">📝 Бележки</button>
+          <button onclick="togglePatientHistory('${escHtml(p.patient_email)}')" class="btn-small btn-orange">📋 История</button>
+        </div>
+        <div id="phist-${escHtml(p.patient_email).replace(/[@.]/g,'-')}" class="history-panel"></div>
+      </div>`).join('');
+  }
+
+  async function togglePatientHistory(email) {
+    const id = 'phist-' + email.replace(/[@.]/g, '-');
+    const panel = document.getElementById(id);
+    if (!panel) return;
+    if (panel.style.display === 'block') { panel.style.display = 'none'; return; }
+    panel.style.display = 'block';
+    panel.innerHTML = '<div style="color:var(--muted);font-size:0.82rem;padding:6px 0;">Зарежда...</div>';
+
+    const [{ data: pastBookings }, { data: notes }, { data: prescriptions }] = await Promise.all([
+      db.from('bookings').select('*, time_slots(date, time)')
+        .eq('doctor_id', currentDoctor.id).eq('patient_email', email)
+        .order('created_at', { ascending: false }).limit(20),
+      db.from('consultation_notes').select('*')
+        .eq('doctor_id', currentDoctor.id).eq('patient_email', email)
+        .order('created_at', { ascending: false }),
+      db.from('prescriptions').select('*, prescription_items(product_name)')
+        .eq('doctor_id', currentDoctor.id).eq('patient_email', email)
+        .order('created_at', { ascending: false })
+    ]);
+
+    const decryptedNotes = await Promise.all(
+      (notes || []).map(async n => ({ ...n, plain: await decryptNote(n.notes_encrypted, currentDoctor.id) }))
+    );
+
+    renderPatientHistory(id, pastBookings, decryptedNotes, prescriptions);
+  }
+
+  // ══════════════════════════════════════════════════════
   // F1 — ПОВТАРЯЩИ СЕ ЧАСОВЕ
   // ══════════════════════════════════════════════════════
   function openRecurringModal() {
@@ -1355,8 +1455,13 @@
     document.getElementById('notesPatientName').textContent = patientName;
     document.getElementById('notesText').value = '';
     document.getElementById('notesSaveMsg').textContent = '';
-    const { data } = await db.from('consultation_notes')
-      .select('notes_encrypted').eq('booking_id', bookingId).eq('doctor_id', currentDoctor.id).maybeSingle();
+
+    const isDirect = bookingId.startsWith('direct-');
+    let query = db.from('consultation_notes').select('notes_encrypted').eq('doctor_id', currentDoctor.id);
+    query = isDirect
+      ? query.eq('patient_email', patientEmail).is('booking_id', null)
+      : query.eq('booking_id', bookingId);
+    const { data } = await query.maybeSingle();
     if (data?.notes_encrypted) {
       document.getElementById('notesText').value = await decryptNote(data.notes_encrypted, currentDoctor.id);
     }
@@ -1370,13 +1475,34 @@
     const msgEl = document.getElementById('notesSaveMsg');
     if (!text) { msgEl.style.color='#e53e3e'; msgEl.textContent='Напишете бележка'; return; }
     const encrypted = await encryptNote(text, currentDoctor.id);
-    const { error } = await db.from('consultation_notes').upsert({
-      booking_id: currentNote.bookingId,
-      doctor_id: currentDoctor.id,
-      patient_email: currentNote.patientEmail,
-      notes_encrypted: encrypted,
-      updated_at: new Date().toISOString()
-    }, { onConflict: 'booking_id,doctor_id' });
+    const isDirect = currentNote.bookingId.startsWith('direct-');
+
+    let error;
+    if (isDirect) {
+      // General patient note — check if exists, then insert or update
+      const { data: existing } = await db.from('consultation_notes').select('id')
+        .eq('doctor_id', currentDoctor.id).eq('patient_email', currentNote.patientEmail)
+        .is('booking_id', null).maybeSingle();
+      if (existing) {
+        ({ error } = await db.from('consultation_notes').update({
+          notes_encrypted: encrypted, updated_at: new Date().toISOString()
+        }).eq('id', existing.id));
+      } else {
+        ({ error } = await db.from('consultation_notes').insert({
+          doctor_id: currentDoctor.id, patient_email: currentNote.patientEmail,
+          notes_encrypted: encrypted
+        }));
+      }
+    } else {
+      ({ error } = await db.from('consultation_notes').upsert({
+        booking_id: currentNote.bookingId,
+        doctor_id: currentDoctor.id,
+        patient_email: currentNote.patientEmail,
+        notes_encrypted: encrypted,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'booking_id,doctor_id' }));
+    }
+
     if (error) { msgEl.style.color='#e53e3e'; msgEl.textContent='Грешка: ' + error.message; return; }
     msgEl.style.color = '#2a9d5c'; msgEl.textContent = '✓ Запазено';
     setTimeout(() => { msgEl.textContent = ''; }, 2500);
